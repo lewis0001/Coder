@@ -1,0 +1,22 @@
+{
+  "extends": "../../packages/config/tsconfig/base.json",
+  "compilerOptions": {
+    "jsx": "react-native",
+    "types": ["react", "react-native"],
+    "allowJs": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/screens/*": ["./src/screens/*"],
+      "@/i18n/*": ["./src/i18n/*"],
+      "@/theme": ["./src/theme"],
+      "@/navigation/*": ["./src/navigation/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/state/*": ["./src/state/*"]
+    }
+  },
+  "include": ["App.tsx", "src/**/*"],
+  "exclude": ["node_modules"]
+}

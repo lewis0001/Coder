@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Orbit",
+    "slug": "orbit-superapp",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "orbit",
+    "userInterfaceStyle": "light",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "apiUrl": "http://localhost:3001",
+      "defaultRegionId": "seed-region-orbit",
+      "defaultCustomerUserId": "seed-user-customer",
+      "defaultDropoffAddressId": "seed-address-user",
+      "courierUserId": "seed-user-courier",
+      "courierToken": ""
+    }
+  }
+}
