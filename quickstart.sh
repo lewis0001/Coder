@@ -97,11 +97,19 @@ escape_sed_value() {
   printf '%s' "$1" | sed -e 's/[\\&/|]/\\&/g'
 }
 
+portable_sed_in_place() {
+  local expr="$1" file="$2"
+  case "$(uname -s)" in
+    Darwin*) sed -i '' "$expr" "$file" ;;
+    *) sed -i "$expr" "$file" ;;
+  esac
+}
+
 set_env_var() {
   local key="$1" value="$2" escaped
   escaped=$(escape_sed_value "$value")
   if grep -Eq "^${key}=" "$REPO_ROOT/.env"; then
-    sed -i "s|^${key}=.*|${key}=${escaped}|" "$REPO_ROOT/.env"
+    portable_sed_in_place "s|^${key}=.*|${key}=${escaped}|" "$REPO_ROOT/.env"
   else
     printf '%s=%s\n' "$key" "$value" >> "$REPO_ROOT/.env"
   fi
