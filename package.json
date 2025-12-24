@@ -1,0 +1,12 @@
+{
+  "name": "orbit-superapp",
+  "private": true,
+  "version": "0.0.1",
+  "packageManager": "pnpm@9",
+  "scripts": {
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "build": "pnpm -r run build",
+    "format": "pnpm -r run format"
+  }
+}

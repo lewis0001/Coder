@@ -1,0 +1,840 @@
+// Prisma schema for Orbit Superapp
+// Datasource and generator
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderType {
+  FOOD
+  SHOP
+  BOX
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  DISPATCHED
+  DELIVERED
+  CANCELED
+  REFUNDED
+}
+
+enum DeliveryTaskStatus {
+  CREATED
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+}
+
+enum PaymentStatus {
+  REQUIRES_ACTION
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+enum PaymentMethodType {
+  CARD
+  WALLET
+}
+
+enum PromotionType {
+  PERCENT
+  FIXED
+  FREE_DELIVERY
+  FIRST_ORDER
+}
+
+enum LoyaltyActionType {
+  EARN
+  REDEEM
+}
+
+enum CartType {
+  FOOD
+  SHOP
+  BOX
+}
+
+enum MenuItemOptionType {
+  SINGLE
+  MULTI
+}
+
+enum VehicleType {
+  BIKE
+  CAR
+  SCOOTER
+  WALKER
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  phone        String?
+  passwordHash String
+  fullName     String
+  locale       String      @default("en")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+
+  roles        UserRole[]
+  sessions     Session[]
+  addresses    Address[]
+  carts        Cart[]
+  orders       Order[]
+  wallet       Wallet?
+  supportTickets SupportTicket[]
+  auditLogs    AuditLog[]
+}
+
+model Role {
+  id   String @id @default(uuid())
+  name String @unique
+  users UserRole[]
+}
+
+model UserRole {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  role   Role   @relation(fields: [roleId], references: [id])
+  roleId String
+
+  @@unique([userId, roleId])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  refreshToken String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([userId])
+}
+
+model Region {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  currency  String
+  timezone  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  restaurants Restaurant[]
+  stores      Store[]
+  addresses   Address[]
+  pricingRules PricingRule[]
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  label      String
+  line1      String
+  line2      String?
+  city       String
+  region     Region   @relation(fields: [regionId], references: [id])
+  regionId   String
+  latitude   Float
+  longitude  Float
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  orders  Order[]
+  carts   Cart[]
+
+  @@index([userId])
+  @@index([regionId])
+}
+
+model Restaurant {
+  id           String              @id @default(uuid())
+  name         String
+  description  String?
+  region       Region              @relation(fields: [regionId], references: [id])
+  regionId     String
+  address      String?
+  latitude     Float?
+  longitude    Float?
+  rating       Float?              @default(0)
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  deletedAt    DateTime?
+
+  cuisines     RestaurantCuisine[]
+  menuCategories MenuCategory[]
+  hours        RestaurantHours[]
+  orders       Order[]
+
+  @@index([regionId])
+  @@index([name])
+}
+
+model Cuisine {
+  id    String @id @default(uuid())
+  name  String @unique
+  restaurants RestaurantCuisine[]
+}
+
+model RestaurantCuisine {
+  id            String      @id @default(uuid())
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurantId  String
+  cuisine       Cuisine     @relation(fields: [cuisineId], references: [id])
+  cuisineId     String
+
+  @@unique([restaurantId, cuisineId])
+}
+
+model MenuCategory {
+  id            String       @id @default(uuid())
+  restaurant    Restaurant   @relation(fields: [restaurantId], references: [id])
+  restaurantId  String
+  name          String
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  items         MenuItem[]
+
+  @@index([restaurantId])
+}
+
+model MenuItem {
+  id           String      @id @default(uuid())
+  category     MenuCategory @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  name         String
+  description  String?
+  price        Decimal      @db.Numeric(10,2)
+  isAvailable  Boolean      @default(true)
+  imageUrl     String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+
+  optionGroups MenuItemOptionGroup[]
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+
+  @@index([categoryId])
+  @@index([name])
+}
+
+model MenuItemOptionGroup {
+  id          String    @id @default(uuid())
+  menuItem    MenuItem  @relation(fields: [menuItemId], references: [id])
+  menuItemId  String
+  name        String
+  type        MenuItemOptionType
+  minSelect   Int       @default(0)
+  maxSelect   Int       @default(1)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  options     MenuItemOption[]
+
+  @@index([menuItemId])
+}
+
+model MenuItemOption {
+  id           String    @id @default(uuid())
+  optionGroup  MenuItemOptionGroup @relation(fields: [optionGroupId], references: [id])
+  optionGroupId String
+  name         String
+  priceDelta   Decimal   @db.Numeric(10,2) @default(0)
+  isAvailable  Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  @@index([optionGroupId])
+}
+
+model RestaurantHours {
+  id           String     @id @default(uuid())
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurantId String
+  dayOfWeek    Int
+  opensAt      String
+  closesAt     String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Store {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  region      Region     @relation(fields: [regionId], references: [id])
+  regionId    String
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  categories  ProductCategory[]
+  products    Product[]
+  hours       StoreHours[]
+  orders      Order[]
+  partners    PartnerStore[]
+
+  @@index([regionId])
+  @@index([name])
+}
+
+model PartnerStore {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  store     Store    @relation(fields: [storeId], references: [id])
+  storeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, storeId])
+  @@index([storeId])
+}
+
+model ProductCategory {
+  id        String  @id @default(uuid())
+  store     Store   @relation(fields: [storeId], references: [id])
+  storeId   String
+  name      String
+  sortOrder Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  products  Product[]
+
+  @@index([storeId])
+}
+
+model Product {
+  id           String @id @default(uuid())
+  store        Store  @relation(fields: [storeId], references: [id])
+  storeId      String
+  category     ProductCategory @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  name         String
+  description  String?
+  basePrice    Decimal @db.Numeric(10,2)
+  imageUrl     String?
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  variants     ProductVariant[]
+  inventory    Inventory?
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+
+  @@index([storeId])
+  @@index([categoryId])
+  @@index([name])
+}
+
+model ProductVariant {
+  id          String @id @default(uuid())
+  product     Product @relation(fields: [productId], references: [id])
+  productId   String
+  name        String
+  price       Decimal @db.Numeric(10,2)
+  sku         String?
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  orderItems  OrderItem[]
+
+  @@index([productId])
+}
+
+model Inventory {
+  id          String   @id @default(uuid())
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String   @unique
+  quantity    Int      @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+model StoreHours {
+  id        String   @id @default(uuid())
+  store     Store    @relation(fields: [storeId], references: [id])
+  storeId   String
+  dayOfWeek Int
+  opensAt   String
+  closesAt  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Cart {
+  id          String    @id @default(uuid())
+  user        User?     @relation(fields: [userId], references: [id])
+  userId      String?
+  cartType    CartType
+  address     Address?  @relation(fields: [addressId], references: [id])
+  addressId   String?
+  promoCode   PromoCode? @relation(fields: [promoCodeId], references: [id])
+  promoCodeId String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  items       CartItem[]
+
+  @@index([userId])
+}
+
+model CartItem {
+  id          String   @id @default(uuid())
+  cart        Cart     @relation(fields: [cartId], references: [id])
+  cartId      String
+  menuItem    MenuItem? @relation(fields: [menuItemId], references: [id])
+  menuItemId  String?
+  product     Product?  @relation(fields: [productId], references: [id])
+  productId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  variantId   String?
+  quantity    Int      @default(1)
+  notes       String?
+  optionSelections Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  @@index([cartId])
+  @@index([menuItemId])
+  @@index([productId])
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  user          User        @relation(fields: [userId], references: [id])
+  userId        String
+  type          OrderType
+  restaurant    Restaurant? @relation(fields: [restaurantId], references: [id])
+  restaurantId  String?
+  store         Store?      @relation(fields: [storeId], references: [id])
+  storeId       String?
+  address       Address     @relation(fields: [addressId], references: [id])
+  addressId     String
+  status        OrderStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PROCESSING)
+  pricing       PricingBreakdown?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  items         OrderItem[]
+  events        OrderStatusEvent[]
+  deliveryTask  DeliveryTask?
+  loyaltyLedger LoyaltyLedger[]
+  paymentIntents PaymentIntentRecord[]
+  transactionLedgers TransactionLedger[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          String      @id @default(uuid())
+  order       Order       @relation(fields: [orderId], references: [id])
+  orderId     String
+  menuItem    MenuItem?   @relation(fields: [menuItemId], references: [id])
+  menuItemId  String?
+  product     Product?    @relation(fields: [productId], references: [id])
+  productId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  variantId   String?
+  quantity    Int         @default(1)
+  unitPrice   Decimal     @db.Numeric(10,2)
+  notes       String?
+  optionSelections Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  @@index([orderId])
+}
+
+model PricingBreakdown {
+  id            String   @id @default(uuid())
+  order         Order    @relation(fields: [orderId], references: [id])
+  orderId       String   @unique
+  subtotal      Decimal  @db.Numeric(10,2)
+  deliveryFee   Decimal  @db.Numeric(10,2)
+  tax           Decimal  @db.Numeric(10,2)
+  discount      Decimal  @db.Numeric(10,2) @default(0)
+  total         Decimal  @db.Numeric(10,2)
+  currency      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model OrderStatusEvent {
+  id        String      @id @default(uuid())
+  order     Order       @relation(fields: [orderId], references: [id])
+  orderId   String
+  status    OrderStatus
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([orderId])
+}
+
+model Courier {
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String    @unique
+  vehicle     CourierVehicle?
+  shifts      CourierShift[]
+  locations   CourierLocation[]
+  tasks       DeliveryTask[]
+  online      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model CourierVehicle {
+  id         String     @id @default(uuid())
+  courier    Courier    @relation(fields: [courierId], references: [id])
+  courierId  String     @unique
+  type       VehicleType
+  plate      String?
+  color      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model CourierShift {
+  id         String    @id @default(uuid())
+  courier    Courier   @relation(fields: [courierId], references: [id])
+  courierId  String
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+
+  @@index([courierId])
+}
+
+model CourierLocation {
+  id         String    @id @default(uuid())
+  courier    Courier   @relation(fields: [courierId], references: [id])
+  courierId  String
+  latitude   Float
+  longitude  Float
+  recordedAt DateTime  @default(now())
+
+  @@index([courierId, recordedAt])
+}
+
+model DeliveryTask {
+  id           String             @id @default(uuid())
+  order        Order              @relation(fields: [orderId], references: [id])
+  orderId      String             @unique
+  courier      Courier?           @relation(fields: [courierId], references: [id])
+  courierId    String?
+  status       DeliveryTaskStatus @default(CREATED)
+  pickupAddress String?
+  pickupLatitude Float?
+  pickupLongitude Float?
+  dropoffAddress String?
+  dropoffLatitude Float?
+  dropoffLongitude Float?
+  packageWeight  Float?
+  packageSize    String?
+  instructions   String?
+  scheduledAt    DateTime?
+  pickupEta    DateTime?
+  dropoffEta   DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  events       TaskEvent[]
+  proof        ProofOfDelivery?
+
+  @@index([courierId])
+}
+
+model TaskEvent {
+  id         String             @id @default(uuid())
+  task       DeliveryTask       @relation(fields: [taskId], references: [id])
+  taskId     String
+  status     DeliveryTaskStatus
+  note       String?
+  createdAt  DateTime           @default(now())
+
+  @@index([taskId])
+}
+
+model ProofOfDelivery {
+  id           String       @id @default(uuid())
+  task         DeliveryTask @relation(fields: [taskId], references: [id])
+  taskId       String       @unique
+  photoUrl     String?
+  signedBy     String?
+  deliveredAt  DateTime     @default(now())
+}
+
+model Wallet {
+  id          String        @id @default(uuid())
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String        @unique
+  balance     Decimal       @db.Numeric(12,2) @default(0)
+  currency    String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  entries     WalletEntry[]
+}
+
+model WalletEntry {
+  id          String    @id @default(uuid())
+  wallet      Wallet    @relation(fields: [walletId], references: [id])
+  walletId    String
+  amount      Decimal   @db.Numeric(12,2)
+  type        String
+  reference   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([walletId])
+}
+
+model TransactionLedger {
+  id          String        @id @default(uuid())
+  order       Order?        @relation(fields: [orderId], references: [id])
+  orderId     String?
+  walletEntry WalletEntry?  @relation(fields: [walletEntryId], references: [id])
+  walletEntryId String?
+  paymentIntent PaymentIntentRecord? @relation(fields: [paymentIntentId], references: [id])
+  paymentIntentId String?
+  amount       Decimal       @db.Numeric(12,2)
+  status       PaymentStatus
+  createdAt    DateTime      @default(now())
+
+  @@index([orderId])
+}
+
+model PaymentIntentRecord {
+  id             String               @id @default(uuid())
+  order          Order?               @relation(fields: [orderId], references: [id])
+  orderId        String?
+  stripeIntentId String
+  clientSecret   String
+  status         PaymentStatus
+  amount         Decimal              @db.Numeric(12,2)
+  currency       String
+  paymentMethod  PaymentMethodRecord? @relation(fields: [paymentMethodId], references: [id])
+  paymentMethodId String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([orderId])
+  @@index([stripeIntentId])
+}
+
+model PaymentMethodRecord {
+  id          String           @id @default(uuid())
+  user        User             @relation(fields: [userId], references: [id])
+  userId      String
+  stripeMethodId String
+  type        PaymentMethodType
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  paymentIntents PaymentIntentRecord[]
+
+  @@index([userId])
+}
+
+model Promotion {
+  id          String        @id @default(uuid())
+  name        String
+  type        PromotionType
+  value       Decimal       @db.Numeric(10,2)
+  maxRedemptions Int?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  promoCodes  PromoCode[]
+}
+
+model PromoCode {
+  id          String      @id @default(uuid())
+  code        String      @unique
+  promotion   Promotion   @relation(fields: [promotionId], references: [id])
+  promotionId String
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  redemptions PromotionRedemption[]
+  carts       Cart[]
+  orders      Order[]
+}
+
+model PromotionRedemption {
+  id          String   @id @default(uuid())
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id])
+  promoCodeId String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  order       Order?    @relation(fields: [orderId], references: [id])
+  orderId     String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([promoCodeId, userId, orderId])
+  @@index([userId])
+}
+
+model LoyaltyRule {
+  id         String   @id @default(uuid())
+  region     Region?  @relation(fields: [regionId], references: [id])
+  regionId   String?
+  earnRate   Decimal  @db.Numeric(10,2)
+  redeemRate Decimal  @db.Numeric(10,2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ledgers    LoyaltyLedger[]
+}
+
+model LoyaltyLedger {
+  id         String          @id @default(uuid())
+  order      Order?          @relation(fields: [orderId], references: [id])
+  orderId    String?
+  user       User            @relation(fields: [userId], references: [id])
+  userId     String
+  points     Int
+  action     LoyaltyActionType
+  rule       LoyaltyRule?    @relation(fields: [ruleId], references: [id])
+  ruleId     String?
+  createdAt  DateTime        @default(now())
+
+  @@index([userId])
+}
+
+model SupportTicket {
+  id          String              @id @default(uuid())
+  user        User                @relation(fields: [userId], references: [id])
+  userId      String
+  subject     String
+  status      SupportTicketStatus @default(OPEN)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  messages    SupportMessage[]
+
+  @@index([userId])
+}
+
+model SupportMessage {
+  id          String   @id @default(uuid())
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id])
+  ticketId    String
+  senderRole  String
+  content     String
+  createdAt   DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+model PricingRule {
+  id           String   @id @default(uuid())
+  region       Region   @relation(fields: [regionId], references: [id])
+  regionId     String
+  baseFee      Decimal  @db.Numeric(10,2)
+  distanceRate Decimal  @db.Numeric(10,2)
+  surgeMultiplier Decimal @db.Numeric(5,2) @default(1)
+  commissionPct Decimal @db.Numeric(5,2) @default(0)
+  fixedCommission Decimal @db.Numeric(10,2) @default(0)
+  taxRate      Decimal  @db.Numeric(5,2) @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([regionId])
+}
+
+model RefundRequest {
+  id          String      @id @default(uuid())
+  order       Order       @relation(fields: [orderId], references: [id])
+  orderId     String
+  amount      Decimal     @db.Numeric(10,2)
+  status      String      @default("pending")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([orderId])
+}
+
+model WebhookEvent {
+  id          String   @id @default(uuid())
+  provider    String
+  eventId     String
+  payload     Json
+  status      String   @default("received")
+  createdAt   DateTime @default(now())
+
+  @@index([provider])
+  @@index([eventId])
+}
+
+model IdempotencyKey {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  createdAt   DateTime @default(now())
+  requestHash String?
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  action    String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

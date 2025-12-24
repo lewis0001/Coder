@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #0f172a;
+  background: #f8fafc;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 60%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-md bg-primary px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center rounded-md border border-mist px-3 py-2 text-sm font-semibold text-ink transition hover:bg-mist/50 focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2;
+}
+
+.card {
+  @apply rounded-md border border-mist bg-white shadow-card;
+}

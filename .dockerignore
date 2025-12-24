@@ -1,0 +1,17 @@
+node_modules
+.pnpm-store
+.git
+.gitignore
+Dockerfile
+.dockerignore
+dist
+build
+.cache
+.next
+coverage
+.tmp
+.env
+.env.*
+apps/**/node_modules
+apps/**/.next
+packages/**/node_modules

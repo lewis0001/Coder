@@ -1,0 +1,27 @@
+{
+  "name": "@orbit/ui",
+  "private": true,
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint 'src/**/*.ts'",
+    "test": "jest",
+    "build": "tsc -p tsconfig.json",
+    "format": "prettier --write 'src/**/*.{ts,tsx,js,json}'"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@typescript-eslint/eslint-plugin": "^7.8.0",
+    "@typescript-eslint/parser": "^7.8.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.2.5",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.4.5"
+  }
+}
