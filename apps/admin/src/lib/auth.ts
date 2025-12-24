@@ -1,14 +1,18 @@
+import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { createSessionValue, parseSessionValue, type SessionPayload, SESSION_COOKIE } from './session';
 
-const SESSION_COOKIE = 'orbit_admin_session';
-
-export function getSession() {
-  const session = cookies().get(SESSION_COOKIE);
-  if (!session || !session.value) return null;
-  return { token: session.value };
+export function getSession(): SessionPayload | null {
+  const raw = cookies().get(SESSION_COOKIE)?.value;
+  return parseSessionValue(raw);
 }
 
-export function requireSession() {
+export function requireSession(): SessionPayload {
   const session = getSession();
-  return session;
+  if (!session) redirect('/login');
+  return session as SessionPayload;
+}
+
+export function issueSessionCookie(payload: SessionPayload) {
+  return createSessionValue(payload);
 }

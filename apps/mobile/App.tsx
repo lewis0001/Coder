@@ -17,7 +17,7 @@ import { BoxScreen } from '@/screens/BoxScreen';
 import { WalletScreen } from '@/screens/WalletScreen';
 import { OrdersScreen } from '@/screens/OrdersScreen';
 import { AccountScreen } from '@/screens/AccountScreen';
-import { colors } from '@orbit/ui';
+import { colors, components, radii, spacing, typography } from '@orbit/ui';
 
 const Tab = createBottomTabNavigator();
 
@@ -37,11 +37,24 @@ export default function App() {
       <NavigationContainer theme={orbitNavTheme}>
         <StatusBar style="dark" />
         <Tab.Navigator
+          sceneContainerStyle={{ backgroundColor: colors.neutral.cloud }}
           screenOptions={({ route }) => ({
             headerShown: false,
             tabBarActiveTintColor: colors.primary,
             tabBarInactiveTintColor: colors.neutral.ash,
-            tabBarStyle: { height: 64, paddingVertical: 8 },
+            tabBarItemStyle: { borderRadius: radii.sm },
+            tabBarLabelStyle: {
+              fontSize: typography.sizes.caption,
+              fontWeight: '600',
+              marginBottom: spacing.xs,
+            },
+            tabBarStyle: {
+              height: components.tab.height,
+              paddingVertical: spacing.sm,
+              backgroundColor: colors.neutral.cloud,
+              borderTopColor: colors.neutral.mist,
+              borderTopWidth: 1,
+            },
             tabBarIcon: ({ color, size }) => {
               const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
                 home: 'home',
@@ -54,7 +67,8 @@ export default function App() {
               };
               const key = route.name.toLowerCase();
               const iconName = iconMap[key] || 'ellipse';
-              return <Ionicons name={iconName} size={size} color={color} />;
+              const iconSize = size ?? components.tab.height / 2.4;
+              return <Ionicons name={iconName} size={iconSize} color={color} />;
             },
           })}
         >

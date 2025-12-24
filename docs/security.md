@@ -15,6 +15,11 @@
 - Stripe webhook verification uses raw body with `STRIPE_WEBHOOK_SECRET`; rejects invalid signatures.
 - PaymentIntents carry idempotency and wallet metadata for reconciliation; wallet ledger entries recorded for top-ups and reversals.
 
+## Sessions & frontend
+- Admin and partner apps store JWTs in HTTP-only, signed cookies (`orbit_admin_session`, `orbit_partner_session`). Middleware validates the signature and redirects to login on missing/invalid sessions.
+- Mock login routes are gated to local development and only issue role-scoped tokens for seeded users.
+
+
 ## Transport & CORS
 - Helmet and CORS enabled globally in the API bootstrap; expect TLS termination in higher environments.
 

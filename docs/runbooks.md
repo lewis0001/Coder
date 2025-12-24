@@ -10,6 +10,19 @@
 7. Run admin/partner: `pnpm --filter @orbit/admin dev`, `pnpm --filter @orbit/partner dev`. For containers, use `docker-compose up admin partner` (admin on 3000, partner on 3002, both point to the API container by default).
 8. Run mobile: `pnpm --filter @orbit/mobile start` with `EXPO_PUBLIC_API_URL` set to API origin. Mobile icons are generated from text placeholders during install; if missing, run `pnpm --filter @orbit/mobile generate:assets`.
 
+### Local smoke checks (Definition of Done)
+
+- **API + Swagger**: ensure Postgres/Redis are running (step 2), then execute `pnpm --filter @orbit/api prisma:migrate:dev` followed by `pnpm --filter @orbit/api prisma:seed` and `pnpm --filter @orbit/api start:dev`. Confirm `/docs` returns Swagger JSON/HTML and `/v1/metrics` is reachable.
+- **Admin sign-in**: start the admin app (step 7) and log in at `http://localhost:3000/login` with `admin@orbit.local` / `AdminPass123!`. Keep the default role set to `admin` unless you want to test restricted dashboards; you should land on `/dashboard` with navigation tabs for overview, operations, finance, and support.
+- **Partner sign-in**: start the partner app (step 7) and log in at `http://localhost:3002/login` with `partner@orbit.local` / `PartnerPass123!`. A successful login routes to `/dashboard` and retains the seeded store association from `apps/api/prisma/seed.ts`.
+- **Mobile sign-in**: run the Expo dev server (step 8) and load the app in Expo Go. From the Account tab, sign in with `user@orbit.local` / `UserPass123!` to unlock customer flows. Courier mode can be tested with `courier@orbit.local` / `CourierPass123!` using the same screen once `EXPO_PUBLIC_API_URL` points at the API.
+
+## Mock integrations (local)
+- **Auth OTP**: OTP delivery is mocked; supply any 6-digit code. Default seed accounts live in `apps/api/prisma/seed.ts`.
+- **Notifications**: default provider logs payloads to stdout. Swap to a real provider by rebinding `NOTIFICATIONS_PROVIDER` in `NotificationsModule`.
+- **Storage**: MinIO acts as S3-compatible storage locally; the API writes proof-of-delivery objects there. Use `mc ls` or the MinIO UI to inspect uploads.
+- **Payments**: Stripe test keys are required; PaymentIntent confirmations in test mode update the wallet without charging real cards.
+
 ## Stripe webhook (local)
 - Prereq: set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in `.env`.
 - Start API with raw body parsing enabled (default in main bootstrap).
