@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { StatCard } from '@/components/stat-card';
 
@@ -11,19 +10,18 @@ const MOCK_STATS = [
 
 export default function DashboardPage() {
   const session = getSession();
-  if (!session) redirect('/login');
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-6 py-10">
-      <header className="flex items-center justify-between">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6">
+      <header className="flex items-start justify-between">
         <div>
           <p className="text-sm text-ash">Operations Console</p>
           <h1 className="text-3xl font-semibold text-ink">Welcome back</h1>
+          <p className="text-sm text-ash">{session?.email}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <form action="/api/mock-logout" method="post">
-            <button type="submit" className="btn-ghost">Sign out</button>
-          </form>
+        <div className="rounded-md bg-white px-4 py-2 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-ash">Role</p>
+          <p className="text-sm font-semibold text-ink">{session?.role ?? 'guest'}</p>
         </div>
       </header>
 

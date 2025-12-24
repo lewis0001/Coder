@@ -1,14 +1,19 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ROLES } from '@/lib/session';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('admin@orbit.local');
   const [password, setPassword] = useState('AdminPass123!');
+  const [role, setRole] = useState<(typeof ROLES)[number]>('admin');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const params = useSearchParams();
+  const nextPath = params.get('next') || '/dashboard';
+  const unauthorized = params.get('unauthorized');
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -17,12 +22,12 @@ export default function LoginPage() {
 
     const res = await fetch('/api/mock-login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, role }),
       headers: { 'Content-Type': 'application/json' },
     });
 
     if (res.ok) {
-      router.push('/dashboard');
+      router.push(nextPath);
     } else {
       const data = await res.json().catch(() => ({}));
       setError(data.message || 'Login failed');
@@ -38,6 +43,10 @@ export default function LoginPage() {
           <h1 className="mt-2 text-2xl font-bold text-ink">Admin sign-in</h1>
           <p className="mt-1 text-sm text-ash">Use seeded credentials for local development.</p>
         </div>
+
+        {unauthorized ? (
+          <p className="mb-3 rounded-md bg-warning/10 px-3 py-2 text-sm text-warning">You need additional permissions for that area.</p>
+        ) : null}
 
         <form className="space-y-4" onSubmit={submit}>
           <div className="space-y-1">
@@ -68,6 +77,25 @@ export default function LoginPage() {
               className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm text-ink shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-info"
               required
             />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-ink" htmlFor="role">
+              Role
+            </label>
+            <select
+              id="role"
+              name="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as typeof role)}
+              className="w-full rounded-md border border-mist bg-white px-3 py-2 text-sm text-ink shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-info"
+            >
+              {ROLES.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error ? <p className="text-sm text-danger">{error}</p> : null}

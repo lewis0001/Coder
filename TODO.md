@@ -42,7 +42,7 @@
 
 ## Epic 8: Admin Portal (Ops)
 - [x] Next.js admin app scaffold with auth shell (files: apps/admin/*; verification: manual inspection)
-- [~] RBAC routing and dashboard layout (files: apps/admin/src/app/dashboard/page.tsx, apps/admin/middleware.ts; verification: manual inspection)
+- [x] RBAC routing and dashboard layout (files: apps/admin/src/app/dashboard/*, apps/admin/middleware.ts; verification: manual inspection)
 
 ## Epic 9: Partner Portal
 - [x] Next.js partner app scaffold with auth shell (files: apps/partner/*; verification: manual inspection)
@@ -51,7 +51,7 @@
 
 ## Epic 10: Courier Mode
 - [x] Courier online/offline and task actions API (files: apps/api/src/courier/*, apps/api/src/common/req-user.decorator.ts, apps/api/src/app.module.ts, apps/api/prisma/seed.ts; verification: unit test manual review)
-- [~] Mobile courier mode UI (files: apps/mobile/src/screens/AccountScreen.tsx, apps/mobile/src/i18n/locales/*; verification: manual inspection)
+- [x] Mobile courier mode UI (files: apps/mobile/src/screens/AccountScreen.tsx, apps/mobile/src/i18n/locales/*; verification: manual inspection)
 
 ## Epic 11: Notifications (Push/Email/SMS abstractions)
 - [x] Notification service abstraction and providers (files: apps/api/src/notifications/*; verification: unit test manual review)
@@ -64,8 +64,8 @@
 - [x] BullMQ setup for background jobs (files: apps/api/src/app.module.ts, apps/api/src/notifications/*; verification: manual inspection)
 
 ## Epic 13: Localization & RTL
-- [~] i18n setup for mobile and web (EN/AR) (files: apps/mobile/src/i18n/*, apps/mobile/App.tsx; verification: manual inspection)
-- [~] RTL layout support baseline (files: apps/mobile/App.tsx, apps/mobile/src/screens/AccountScreen.tsx; verification: manual inspection)
+- [x] i18n setup for mobile and web (EN/AR) (files: apps/mobile/src/i18n/*, apps/mobile/App.tsx; verification: manual inspection)
+- [x] RTL layout support baseline (files: apps/mobile/App.tsx, apps/mobile/src/screens/AccountScreen.tsx; verification: manual inspection)
 
 ## Epic 14: CI/CD + Docker + Deploy Skeleton
 - [x] GitHub Actions CI pipeline (lint/test/build) (files: .github/workflows/ci.yml; verification: manual inspection)
@@ -78,22 +78,22 @@
 
 ## Epic 16: Documentation & Runbooks
 - [x] README with setup steps (files: README.md; verification: manual inspection)
-- [~] /docs architecture, api, security, decisions, runbooks (files: docs/architecture.md, docs/security.md, docs/decisions.md, docs/runbooks.md; verification: manual inspection)
+- [x] /docs architecture, api, security, decisions, runbooks (files: docs/architecture.md, docs/security.md, docs/decisions.md, docs/runbooks.md; verification: manual inspection)
 - [x] Stripe/webhook/local mock documentation (files: README.md, docs/runbooks.md; verification: manual inspection)
 
 ## Epic 17: ORIGINAL Brand & UI System
 - [x] Create brand guide in /docs/brand.md (files: docs/brand.md; verification: manual inspection)
 - [x] Implement design tokens in /packages/ui (files: packages/ui/src/tokens.ts, packages/ui/tsconfig.json, packages/ui/.eslintrc.js, packages/ui/package.json; verification: manual inspection)
-- [~] Apply tokens in web/mobile shells (files: apps/mobile/App.tsx, apps/mobile/src/screens/*; verification: manual inspection)
+- [x] Apply tokens in web/mobile shells (files: apps/mobile/App.tsx, apps/mobile/src/screens/*, apps/admin/src/app/globals.css; verification: manual inspection)
 
 ## Definition of Done
 - [ ] `pnpm -r lint` passes
 - [ ] `pnpm -r test` passes
-- [ ] API boots locally, migrations run, Swagger available at /docs
-- [ ] Admin boots locally and can login as seeded admin
-- [ ] Partner boots locally and can login as seeded partner
-- [ ] Mobile boots in Expo and can login as seeded user
+- [x] API boots locally, migrations run, Swagger available at /docs
+- [x] Admin boots locally and can login as seeded admin
+- [x] Partner boots locally and can login as seeded partner
+- [x] Mobile boots in Expo and can login as seeded user
 - [ ] End-to-end flows for Food, Shop, Box with tracking and payments
 - [ ] Wallet top-up and ledger verified
 - [ ] Stripe webhooks documented and functional in local
-- [ ] Mock integrations documented in /docs/runbooks.md
+- [x] Mock integrations documented in /docs/runbooks.md

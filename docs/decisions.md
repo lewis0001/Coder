@@ -15,3 +15,11 @@
 ## ADR-004: Stripe PaymentIntents
 - PaymentIntents with webhooks ensure idempotent wallet top-ups and refunds; aligns with test-mode requirements.
 - Webhook verification enforced via `STRIPE_WEBHOOK_SECRET` using raw body parsing.
+
+## ADR-005: Shared Orbit design tokens
+- Colors, spacing, radii, typography, and component primitives live in `@orbit/ui` to ensure parity across admin, partner, and mobile shells.
+- Tokens are exposed as TypeScript constants for programmatic use and as CSS variables for the web shells.
+
+## ADR-006: Next.js App Router for portals
+- Admin and partner portals use the App Router for nested layouts, route groups, and middleware-based session checks.
+- Aligns with server actions/API routes for mock login/logout flows without adding a separate BFF.
