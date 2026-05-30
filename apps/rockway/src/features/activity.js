@@ -11,25 +11,30 @@
   const providers = [];
   RW.registerActivity = (fn) => providers.push(fn);
 
-  /* ---- built-in providers (orders + parcels) ---- */
-  RW.registerActivity(() => (RW.S.orders || []).map((o) => ({
-    t: o.t,
-    kind: 'orders',
-    html: '<div class="card row" data-act="nav" data-route="' + esc('#/order/' + o.id) + '" style="cursor:pointer">' +
-      '<div class="lead">' + (o.type === 'food' ? '🍔' : '🛒') + '</div>' +
-      '<div class="body"><div class="name">' + esc(o.vendorName) + '</div>' +
-      '<div class="sub">' + esc(o.ref) + ' · <span class="num">' + money(o.total) + '</span> · ' + esc(fmtTime(o.t)) + '</div></div>' +
-      '<div class="trail"><span class="pill-status ok">Track</span></div></div>',
+  /* ---- built-in providers (bookings + event/explore reservations) ---- */
+  function statusPill(s) {
+    var cls = s === 'Confirmed' ? 'ok' : s === 'Cancelled' ? 'danger' : 'info';
+    return '<span class="pill-status ' + cls + '">' + esc(s || 'Requested') + '</span>';
+  }
+  RW.registerActivity(() => (RW.S.bookings || []).map((b) => ({
+    t: b.t,
+    kind: 'bookings',
+    html: '<div class="card row" data-act="nav" data-route="#/discover/' + esc(b.bizId || '') + '" style="cursor:pointer">' +
+      '<div class="lead" style="background:var(--green-soft)">📅</div>' +
+      '<div class="body"><div class="name">' + esc(b.service) + ' · ' + esc(b.bizName) + '</div>' +
+      '<div class="sub">' + esc(b.when) + ' · ' + esc(b.ref) +
+      (b.price ? ' · <span class="num">' + esc(b.price) + '</span>' : '') + '</div></div>' +
+      '<div class="trail">' + statusPill(b.status) + '</div></div>',
   })));
 
-  RW.registerActivity(() => (RW.S.parcels || []).map((p) => ({
-    t: p.t,
-    kind: 'money',
+  RW.registerActivity(() => (RW.S.reservations || []).map((r) => ({
+    t: r.t,
+    kind: 'bookings',
     html: '<div class="card row">' +
-      '<div class="lead">📦</div>' +
-      '<div class="body"><div class="name">Parcel → ' + esc(p.to) + '</div>' +
-      '<div class="sub">' + esc(p.ref) + ' · ' + esc(p.status) + ' · ' + esc(fmtTime(p.t)) + '</div></div>' +
-      '<div class="trail"><span class="num">' + money(p.price) + '</span></div></div>',
+      '<div class="lead">' + (r.kind === 'explore' ? '🧭' : '🎟️') + '</div>' +
+      '<div class="body"><div class="name">' + esc(r.name) + '</div>' +
+      '<div class="sub">' + esc(r.when || 'Reserved') + ' · ' + esc(r.ref) + '</div></div>' +
+      '<div class="trail"><span class="pill-status ok">Reserved</span></div></div>',
   })));
 
   /* ---- day-grouping helpers ---- */
@@ -53,8 +58,6 @@
   /* ---- filter config ---- */
   var FILTERS = [
     { label: 'All',      value: 'all' },
-    { label: 'Orders',   value: 'orders' },
-    { label: 'Money',    value: 'money' },
     { label: 'Bookings', value: 'bookings' },
   ];
 
@@ -121,7 +124,7 @@
       body = summary + filterChips + grouped;
     }
 
-    return RW.ui.screen({ title: 'Activity', plain: true, tab: 'activity', body: body, fab: false });
+    return RW.ui.screen({ title: 'Bookings & activity', plain: true, tab: 'activity', body: body });
   }
 
   RW.register({

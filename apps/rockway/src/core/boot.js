@@ -19,30 +19,17 @@
     'src/features/home.js',
     'src/features/activity.js',
     'src/features/account.js',
-    'src/features/cart.js',
-    // daily life
-    'src/features/eat.js',
-    'src/features/shop.js',
-    'src/features/send.js',
-    'src/features/frontier.js',
-    'src/features/move.js',
-    'src/features/parking.js',
-    // money
-    'src/features/wallet.js',
-    'src/features/pay.js',
-    'src/features/bills.js',
-    'src/features/topup.js',
-    'src/features/rewards.js',
-    // services
-    'src/features/gov.js',
-    'src/features/health.js',
+    // marketplace spine: discover & book local businesses + the business side
+    'src/features/discover.js',
+    'src/features/business.js',
+    // automatable local features
+    'src/features/frontier.js',   // live cameras + community crowd-reports
+    'src/features/marketplace.js',
     'src/features/jobs.js',
     'src/features/property.js',
-    'src/features/marketplace.js',
-    // explore & connect
     'src/features/events.js',
     'src/features/explore.js',
-    'src/features/news.js',
+    'src/features/news.js',        // live Gibraltar Chronicle RSS (with fallback)
     'src/features/chat.js',
   ];
 

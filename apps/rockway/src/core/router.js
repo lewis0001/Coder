@@ -38,23 +38,10 @@
   RW.render = render;
 
   // ---------------- built-in action handlers ----------------
-  function findItemByKey(key) {
-    const parts = key.split(':');
-    const type = parts[0], vid = parts[1], iid = parts[2];
-    const prov = RW.api && RW.api.catalogItem;
-    if (prov) return prov(type, vid, iid, key);
-    return null;
-  }
-
   const builtins = {
     nav: (el) => RW.go(el.dataset.route),
     back: () => (history.length > 1 ? history.back() : RW.go('#/')),
     toast: (el) => RW.toast(el.dataset.msg),
-    add: (el) => {
-      const item = findItemByKey(el.dataset.key);
-      if (item) { RW.store.addToCart(item); RW.toast(item.name + ' added'); render(); }
-    },
-    qty: (el) => { RW.store.setQty(el.dataset.key, parseInt(el.dataset.d, 10)); render(); },
   };
 
   document.addEventListener('click', function (ev) {

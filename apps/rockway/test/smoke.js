@@ -81,10 +81,8 @@ RW.userEmail = 'hello@rockway.gi';
 /* ---------------- render every route ---------------- */
 console.log('\nRendering routes:');
 const features = RW.allFeatures();
-const routes = ['#/', '#/activity', '#/wallet', '#/account', '#/cart'];
+const routes = ['#/', '#/activity', '#/account', '#/discover', '#/business'];
 features.forEach((f) => { if (f.showTile) routes.push('#/' + f.id); });
-// a couple of detail routes
-routes.push('#/eat/r-roys', '#/shop/s-morrisons');
 
 routes.forEach((r) => {
   location.hash = r;
@@ -105,28 +103,20 @@ function act(name, dataset) {
   if (!h) { fail('no handler for action ' + name); return; }
   try { h(el, {}); ok('action ' + name); } catch (e) { fail('action ' + name + ' → ' + e.message); }
 }
-// add two items, then place an order
-location.hash = '#/eat/r-roys';
-act('add', { key: 'food:r-roys:m1' });
-act('add', { key: 'food:r-roys:m1' });
-if (RW.store.cartCount() < 2) fail('cart did not accumulate'); else ok('cart count = ' + RW.store.cartCount());
-const before = RW.S.wallet;
-act('placeOrder', { total: '13.50' });
-if (RW.S.orders.length < 1) fail('order not created');
-else if (RW.S.wallet >= before) fail('wallet not debited'); else ok('wallet debited ' + before + ' → ' + RW.S.wallet);
-act('topupWallet', {});
+// frontier community report flow
+location.hash = '#/frontier';
+const beforeReports = (RW.S.frontierReports || []).length;
+act('frontierLevel', { v: 'red' });
+act('frontierReport', {});
+if ((RW.S.frontierReports || []).length <= beforeReports) fail('frontier report not recorded');
+else ok('frontier report recorded (' + RW.S.frontierReports.length + ')');
 act('setLang', { v: 'yan' });
-// shop add-to-basket (shop renamed its cart actions — lock the flow)
-location.hash = '#/shop/s-morrisons';
-const beforeCount = RW.store.cartCount();
-act('shopAdd', { key: 'shop:s-morrisons:p1' });
-if (RW.store.cartCount() <= beforeCount) fail('shopAdd did not add to basket');
-else ok('shopAdd works (cart ' + RW.store.cartCount() + ')');
+if (RW.S.lang !== 'yan') fail('setLang did not persist'); else ok('setLang works');
 
 // top-level content feeds must not render empty on fresh state (catches
 // default-filter regressions like the news getFilter bug)
 console.log('\nFeed sanity (fresh state):');
-['news', 'jobs', 'marketplace', 'explore', 'events'].forEach((id) => {
+['news', 'jobs', 'marketplace', 'explore', 'events', 'frontier'].forEach((id) => {
   location.hash = '#/' + id;
   RW.render();
   const html = (elements.app && elements.app.innerHTML) || '';

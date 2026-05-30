@@ -29,7 +29,7 @@
     const w = (RW.api && RW.api.weather && RW.api.weather()) || { windDir: 'E' };
     const levanter = /e/i.test(w.windDir || '') && /levant|^e/i.test(w.windDir || 'E');
     let level = 'amber';
-    if (RW.api && RW.api.frontier) { const f = RW.api.frontier; level = f.level(f.wait(f.lanes[0])); }
+    if (RW.api && RW.api.frontier) { level = RW.api.frontier.community('in-car').level; }
     return { hour: new Date().getHours(), levanter: /levant/i.test(w.condition || '') || /E/.test(w.windDir || ''), frontierLevel: level, runwayClosed: false };
   }
 

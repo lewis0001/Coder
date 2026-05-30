@@ -30,8 +30,8 @@
   function tabbar(active) {
     const tabs = [
       { id: 'home', label: 'Home', route: '#/', icon: ICON.home },
-      { id: 'activity', label: 'Activity', route: '#/activity', icon: ICON.activity },
-      { id: 'wallet', label: 'Wallet', route: '#/wallet', icon: ICON.wallet },
+      { id: 'discover', label: 'Discover', route: '#/discover', icon: ICON.grid },
+      { id: 'activity', label: 'Bookings', route: '#/activity', icon: ICON.activity },
       { id: 'account', label: 'Account', route: '#/account', icon: ICON.user },
     ];
     return '<div class="tabbar">' + tabs.map((t) =>
@@ -39,21 +39,14 @@
       t.icon + '<span>' + t.label + '</span></button>').join('') + '</div>';
   }
 
-  function cartFab() {
-    if (!RW.store.cartCount()) return '';
-    return '<button class="cart-fab" data-act="nav" data-route="#/cart">🧺 Basket ' +
-      '<span class="badge">' + RW.store.cartCount() + '</span> · ' + money(RW.store.cartTotal()) + '</button>';
-  }
-
   // Compose a full screen. body = inner HTML (without topbar/tabbar).
-  // opts: {title, brand, plain, tab, fab(bool), hero, sticky}
+  // opts: {title, brand, plain, tab, hero, sticky}
   function screen(opts) {
     opts = opts || {};
     const top = topbar(opts.brand ? { brand: true } : { title: opts.title, plain: opts.plain, right: opts.right });
-    const fab = opts.fab === false ? '' : cartFab();
     return top +
       '<div class="screen fade-in">' + (opts.hero || '') + '<div class="pad">' + (opts.body || '') + '<div style="height:24px"></div></div></div>' +
-      (opts.sticky || '') + fab + tabbar(opts.tab || 'home');
+      (opts.sticky || '') + tabbar(opts.tab || 'home');
   }
 
   // Small reusable row.
@@ -97,6 +90,9 @@
       return '<span class="chip tap' + on + '" data-act="' + act + '" data-v="' + esc(it.value) + '">' + esc(it.label) + '</span>';
     }).join('') + '</div>';
   }
+
+  // Deprecated no-op kept so any lingering caller never throws (no cart in MVP).
+  function cartFab() { return ''; }
 
   RW.ui = { topbar, tabbar, cartFab, screen, row, sectionTitle, empty, hero, chips };
 })(window.RW);
