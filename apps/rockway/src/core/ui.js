@@ -76,5 +76,27 @@
       '</div>';
   }
 
-  RW.ui = { topbar, tabbar, cartFab, screen, row, sectionTitle, empty };
+  // Tinted gradient hero for feature detail screens.
+  // opts: { emoji, title, sub, accent (hex), chips:[strings] }
+  function hero(opts) {
+    opts = opts || {};
+    const a = opts.accent || '#d4112a';
+    const a2 = RW.util.shade(a, -28);
+    const chips = (opts.chips || []).map((c) => '<span class="chip">' + esc(c) + '</span>').join('');
+    return '<div class="hero" style="background:linear-gradient(135deg,' + a + ',' + a2 + ')">' +
+      (opts.emoji ? '<div class="hero-emoji">' + opts.emoji + '</div>' : '') +
+      '<div class="hero-title">' + esc(opts.title || '') + '</div>' +
+      (opts.sub ? '<div class="hero-sub">' + esc(opts.sub) + '</div>' : '') +
+      (chips ? '<div class="chips" style="margin-top:10px">' + chips + '</div>' : '') + '</div>';
+  }
+
+  // Interactive filter chip row. items:[{label,value}], current value, action name.
+  function chips(items, current, act, brand) {
+    return '<div class="chips" style="margin-bottom:12px">' + items.map((it) => {
+      const on = it.value === current ? ' on' + (brand ? ' brand' : '') : '';
+      return '<span class="chip tap' + on + '" data-act="' + act + '" data-v="' + esc(it.value) + '">' + esc(it.label) + '</span>';
+    }).join('') + '</div>';
+  }
+
+  RW.ui = { topbar, tabbar, cartFab, screen, row, sectionTitle, empty, hero, chips };
 })(window.RW);

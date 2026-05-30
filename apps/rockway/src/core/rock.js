@@ -84,17 +84,23 @@
       '<svg class="rock-svg" viewBox="0 0 400 220" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Live view of the Rock of Gibraltar">' +
       '<defs>' +
       '<linearGradient id="rkSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + sky[0] + '"/><stop offset="1" stop-color="' + sky[1] + '"/></linearGradient>' +
-      '<linearGradient id="rkRock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + rf[0] + '"/><stop offset="1" stop-color="' + rf[1] + '"/></linearGradient>' +
+      '<linearGradient id="rkRock" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="' + rf[0] + '"/><stop offset="1" stop-color="' + rf[1] + '"/></linearGradient>' +
+      '<radialGradient id="rkGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="' + (night ? '#9fb6d6' : '#fff3c4') + '" stop-opacity="' + (night ? 0.25 : 0.7) + '"/><stop offset="1" stop-color="' + (night ? '#9fb6d6' : '#fff3c4') + '" stop-opacity="0"/></radialGradient>' +
       '</defs>' +
       '<rect width="400" height="220" fill="url(#rkSky)"/>' +
+      '<circle cx="' + sunX + '" cy="' + sunY + '" r="60" fill="url(#rkGlow)"/>' + // sun/moon glow
       stars + sun +
       '<rect x="0" y="150" width="400" height="20" fill="#fff" opacity="' + haze + '"/>' + // distance haze band
       levanterCloud +
       '<rect x="0" y="186" width="400" height="40" fill="' + sea + '"/>' +
       '<path d="M0,190 H400" stroke="#fff" stroke-opacity="0.12" stroke-width="6"/>' +
+      '<rect x="' + (sunX - 9) + '" y="190" width="18" height="30" fill="#fff" opacity="' + (night ? 0.06 : 0.16) + '"/>' + // water shimmer under sun
       ships +
       '<path d="' + rockPath + '" fill="url(#rkRock)"/>' +
-      '<path d="' + ridge + '" fill="none" stroke="#fff" stroke-opacity="0.16" stroke-width="2"/>' +
+      // limestone strata following the slope
+      '<path d="M74,118 C150,92 230,128 332,168" fill="none" stroke="#000" stroke-opacity="0.05" stroke-width="2"/>' +
+      '<path d="M88,150 C170,128 250,150 316,176" fill="none" stroke="#000" stroke-opacity="0.045" stroke-width="2"/>' +
+      '<path d="' + ridge + '" fill="none" stroke="#fff" stroke-opacity="0.18" stroke-width="2"/>' +
       cable + lighthouse + runway + frontier +
       '</svg>';
   }
