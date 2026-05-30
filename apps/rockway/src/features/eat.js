@@ -55,10 +55,14 @@
   });
 
   // ---- helpers ----
-  function starRating(rating) {
-    const full = Math.floor(rating);
-    const half = rating - full >= 0.5 ? 1 : 0;
-    return '★'.repeat(full) + (half ? '½' : '');
+  function ratingPill(rating) {
+    // ok (green) for 4.5+, warn (amber) for 4.0–4.49
+    const cls = rating >= 4.5 ? 'ok' : 'warn';
+    return '<span class="pill-status ' + cls + '">★ ' + rating + '</span>';
+  }
+
+  function reviewStr(n) {
+    return n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '') + 'k' : String(n);
   }
 
   function getFilter() {
@@ -74,33 +78,45 @@
 
     const filterChips = RW.ui.chips(CUISINE_FILTERS, filter, 'eatFilter', true);
 
-    const intro = '<div class="muted tiny" style="margin-bottom:2px;font-weight:600">🛵 Delivering across the Rock · Powered by local riders</div>';
+    // Llanito-flavoured intro banner
+    const intro = (
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:11px 13px;' +
+      'background:var(--cloud);border-radius:14px">' +
+      '<span style="font-size:22px">🛵</span>' +
+      '<div>' +
+        '<div style="font-weight:700;font-size:13px">Delivering across the Rock</div>' +
+        '<div class="muted tiny">Powered by local riders · ¿Qué quieres comer hoy?</div>' +
+      '</div>' +
+      '</div>'
+    );
 
     let cards;
     if (visible.length === 0) {
-      cards = RW.ui.empty('🍽️', 'No restaurants in that category yet.\nMore kitchens joining soon — check back mañana!');
+      cards = RW.ui.empty('🍽️', 'No restaurants in that category just now.\nMore cocinas joining soon — check back mañana!');
     } else {
       cards = visible.map((r) => {
-        const reviewStr = r.reviews >= 1000
-          ? (r.reviews / 1000).toFixed(1).replace('.0', '') + 'k'
-          : String(r.reviews);
+        const reviews = reviewStr(r.reviews);
         return (
-          '<div class="card venue" data-act="nav" data-route="#/eat/' + esc(r.id) + '" style="cursor:pointer;margin-bottom:12px">' +
-          '<div class="venue-head" style="display:flex;align-items:flex-start;gap:12px">' +
-            '<div class="venue-emoji" style="font-size:36px;line-height:1;flex:0 0 auto;margin-top:2px">' + r.emoji + '</div>' +
+          '<div class="card" data-act="nav" data-route="#/eat/' + esc(r.id) + '" ' +
+          'style="cursor:pointer;margin-bottom:12px;padding:14px 14px 12px">' +
+          // Row: tinted icon badge + details
+          '<div style="display:flex;align-items:flex-start;gap:12px">' +
+            '<div style="width:52px;height:52px;border-radius:16px;background:' + esc(r.accent) + '20;' +
+            'display:grid;place-items:center;font-size:28px;flex:0 0 auto">' + r.emoji + '</div>' +
             '<div style="flex:1;min-width:0">' +
-              '<div style="font-weight:800;font-size:15.5px;letter-spacing:-.2px">' + esc(r.name) + '</div>' +
-              '<div class="muted tiny" style="font-weight:600;margin-top:1px">' + esc(r.cuisine) + '</div>' +
-              '<div style="display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap">' +
-                '<span style="font-size:12px;font-weight:700;color:var(--gold)">★ ' + r.rating + '</span>' +
-                '<span class="muted tiny">' + esc(reviewStr) + ' reviews</span>' +
-                '<span class="muted tiny">📍 ' + esc(r.area) + '</span>' +
+              '<div style="font-weight:800;font-size:15px;letter-spacing:-.2px;margin-bottom:1px">' + esc(r.name) + '</div>' +
+              '<div class="muted tiny" style="font-weight:600">' + esc(r.cuisine) + '</div>' +
+              '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap">' +
+                ratingPill(r.rating) +
+                '<span class="muted tiny" style="font-weight:600">' + esc(reviews) + ' reviews</span>' +
+                '<span class="muted tiny">· 📍 ' + esc(r.area) + '</span>' +
               '</div>' +
             '</div>' +
           '</div>' +
-          '<div class="chips" style="margin-top:10px">' +
-            '<span class="chip">🛵 ' + r.etaMin + '–' + r.etaMax + ' min</span>' +
-            '<span class="chip num">' + money(r.deliveryFee) + ' delivery</span>' +
+          // Chips: ETA + delivery fee + cuisine tags
+          '<div class="chips" style="margin-top:10px;margin-bottom:0">' +
+            '<span class="chip">🕐 ' + r.etaMin + '–' + r.etaMax + ' min</span>' +
+            '<span class="chip"><span class="num">' + money(r.deliveryFee) + '</span> delivery</span>' +
             r.tags.map((t) => '<span class="chip">' + esc(t) + '</span>').join('') +
           '</div>' +
           '</div>'
@@ -117,49 +133,65 @@
     const r = byId[id];
     if (!r) return list();
 
+    // Note: RW.ui.hero internally escapes title, sub and chip strings — pass raw values
     const heroHtml = RW.ui.hero({
       emoji: r.emoji,
       title: r.name,
-      sub: esc(r.cuisine) + ' · 📍 ' + esc(r.area),
+      sub: r.cuisine + ' · 📍 ' + r.area,
       accent: r.accent,
       chips: [
-        '★ ' + r.rating + ' (' + r.reviews + ' reviews)',
-        '🛵 ' + r.etaMin + '–' + r.etaMax + ' min',
+        '★ ' + r.rating + ' (' + reviewStr(r.reviews) + ' reviews)',
+        '🕐 ' + r.etaMin + '–' + r.etaMax + ' min',
         money(r.deliveryFee) + ' delivery',
       ],
     });
 
     let menuRows;
     if (!r.menu || r.menu.length === 0) {
-      menuRows = RW.ui.empty('🍽️', 'Menu not available right now.\nPlease call the restaurant directly.');
+      menuRows = RW.ui.empty('🍽️', 'Menu not available right now.\nLlama al restaurante directamente.');
     } else {
-      menuRows = '<div class="card">' + r.menu.map((m) => {
+      menuRows = '<div class="card" style="padding:0 4px">' + r.menu.map((m) => {
         const key = 'food:' + r.id + ':' + m.id;
         const inCart = RW.S.cart.find((i) => i.key === key);
         const ctrl = inCart
-          ? '<div class="qty"><button data-act="eatQty" data-key="' + esc(key) + '" data-d="-1">−</button><span class="num">' + inCart.qty + '</span><button data-act="eatQty" data-key="' + esc(key) + '" data-d="1">+</button></div>'
+          ? (
+            '<div class="qty">' +
+              '<button data-act="eatQty" data-key="' + esc(key) + '" data-d="-1">−</button>' +
+              '<span class="num">' + inCart.qty + '</span>' +
+              '<button data-act="eatQty" data-key="' + esc(key) + '" data-d="1">+</button>' +
+            '</div>'
+          )
           : '<button class="btn sm" data-act="eatAdd" data-key="' + esc(key) + '">Add</button>';
         const kcalBadge = m.kcal
-          ? '<span class="muted tiny" style="margin-left:4px">· ' + m.kcal + ' kcal</span>'
+          ? '<span class="pill-status neutral" style="font-size:11px;padding:3px 7px">' + m.kcal + ' kcal</span>'
           : '';
         return (
-          '<div class="row">' +
-            '<div class="lead">' + m.emoji + '</div>' +
-            '<div class="body">' +
-              '<div class="name">' + esc(m.name) + '</div>' +
-              '<div class="sub">' + esc(m.desc) + '</div>' +
-              '<div style="margin-top:5px;display:flex;align-items:center">' +
+          '<div class="row" style="padding:14px 8px;align-items:flex-start">' +
+            // Tinted emoji tile matching restaurant accent
+            '<div class="lead" style="background:' + esc(r.accent) + '18;border-radius:14px;font-size:24px;' +
+            'width:50px;height:50px;flex:0 0 50px;align-self:center">' + m.emoji + '</div>' +
+            '<div class="body" style="padding-right:8px">' +
+              '<div class="name" style="font-weight:800;font-size:14px">' + esc(m.name) + '</div>' +
+              '<div class="sub" style="margin-top:2px;line-height:1.4">' + esc(m.desc) + '</div>' +
+              '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">' +
                 '<span class="num" style="font-weight:800;font-size:14px;color:var(--ink)">' + money(m.price) + '</span>' +
                 kcalBadge +
               '</div>' +
             '</div>' +
-            '<div class="trail">' + ctrl + '</div>' +
+            '<div class="trail" style="align-self:center">' + ctrl + '</div>' +
           '</div>'
         );
       }).join('') + '</div>';
     }
 
-    const body = RW.ui.sectionTitle('Menu — ' + esc(r.name)) + menuRows;
+    // Subtle contextual note under section title
+    const areaNote = (
+      '<div class="muted tiny" style="text-align:center;margin-bottom:14px">' +
+      '📍 Delivering from ' + esc(r.area) + ' · Powered by local riders' +
+      '</div>'
+    );
+
+    const body = RW.ui.sectionTitle('Menu') + areaNote + menuRows;
     return RW.ui.screen({ title: r.name, hero: heroHtml, body });
   }
 
@@ -180,6 +212,7 @@
         const item = RW.api.catalogItem('food', parts[1], parts[2]);
         if (!item) return;
         RW.store.addToCart(item);
+        RW.toast('¡Añadido! ' + item.emoji + ' ' + item.name);
         RW.render();
       },
       eatQty: (el) => {

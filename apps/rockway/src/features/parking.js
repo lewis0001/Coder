@@ -1,15 +1,15 @@
 /* Rockway feature — Parking (Gibraltar pay & display + residential permits). */
 (function (RW) {
   'use strict';
-  const { esc, money, uid, ref } = RW.util;
+  const { esc, money, uid, ref, fmtTime } = RW.util;
 
   // ---- Gibraltar pay & display car parks (gibcarparks.com) ----
   const CAR_PARKS = [
-    { id: 'mid-harbour',   name: 'Mid-Harbour',    zone: 'Mid-Harbour',    hint: 'Waterfront / Marina' },
-    { id: 'eurotowers',    name: 'Eurotowers',      zone: 'Eurotowers',     hint: 'Town centre tower block' },
-    { id: 'devils-tongue', name: "Devil's Tongue",  zone: "Devil's Tongue", hint: 'North District' },
-    { id: 'icc',           name: 'ICC',             zone: 'ICC',            hint: 'International Commercial Centre' },
-    { id: 'coach-park',    name: 'Coach Park',      zone: 'Coach Park',     hint: 'Bus & coach terminus' },
+    { id: 'mid-harbour',   name: 'Mid-Harbour',   zone: 'Mid-Harbour',   hint: 'Waterfront / Marina — busiest in summer' },
+    { id: 'eurotowers',    name: 'Eurotowers',     zone: 'Eurotowers',    hint: 'Town centre tower block — shops & offices' },
+    { id: 'devils-tongue', name: "Devil's Tongue", zone: "Devil's Tongue", hint: 'North District — near frontier crossing' },
+    { id: 'icc',           name: 'ICC',            zone: 'ICC',           hint: 'International Commercial Centre' },
+    { id: 'coach-park',    name: 'Coach Park',     zone: 'Coach Park',    hint: 'Bus & coach terminus — all-day bays' },
   ];
 
   // Pay & display tariff (Gibraltar Car Parks Ltd)
@@ -20,16 +20,17 @@
     { label: 'All day', hours: 10, price: 8.00 },
   ];
 
-  // Residential Parking Scheme — escalating monthly cost per permit held by household
-  // Zone areas based on Gibraltar Transport & Parking Plan / GBC reporting
+  // Residential Parking Scheme — escalating monthly cost per permit held by household.
+  // Zone areas based on Gibraltar Transport & Parking Plan / GBC reporting.
   const RPS_ZONES = [
-    { zone: 1, name: 'Zone 1', area: 'Town Centre / Main Street',          color: '#1455c0' },
-    { zone: 2, name: 'Zone 2', area: 'Westside / Glacis Estate',           color: '#0a9d4a' },
-    { zone: 3, name: 'Zone 3', area: 'Moorish Castle / Upper Town',        color: '#e08a00' },
-    { zone: 4, name: 'Zone 4', area: 'Reclamation Areas / Ocean Village',  color: '#7c3aed' },
+    { zone: 1, name: 'Zone 1', area: 'Town Centre / Main Street',         color: '#1455c0', areaNote: 'Highest demand — apply early' },
+    { zone: 2, name: 'Zone 2', area: 'Westside / Glacis Estate',          color: '#0a9d4a', areaNote: 'Residential streets west of town' },
+    { zone: 3, name: 'Zone 3', area: 'Moorish Castle / Upper Town',       color: '#e08a00', areaNote: 'Steep streets, limited bays' },
+    { zone: 4, name: 'Zone 4', area: 'Reclamation Areas / Ocean Village', color: '#7c3aed', areaNote: 'Newest zone, marina-side' },
   ];
 
-  // Monthly permit price by number already held in the household (0-indexed: 0 = first)
+  // Monthly permit price by number already held in the household (0-indexed: 0 = first).
+  // Source: GBC / Gibraltar Chronicle RPS coverage.
   function permitMonthlyPrice(permitsBefore) {
     if (permitsBefore === 0) return 5;
     if (permitsBefore === 1) return 10;
@@ -43,7 +44,7 @@
     return RW.S.parking.filter(function (p) { return p.expires > Date.now(); });
   }
 
-  // Returns { text, isWarn } — warn when < 15 minutes remain
+  // Returns { text, isWarn } — warn when < 15 minutes remain.
   function fmtRemaining(expires) {
     var ms = expires - Date.now();
     if (ms <= 0) return { text: 'Expired', isWarn: false };
@@ -64,18 +65,18 @@
     var rem = fmtRemaining(p.expires);
     var pillClass = rem.isWarn ? 'warn' : 'ok';
     return '<div class="row">' +
-      '<div class="lead" style="background:var(--sea-soft)">🅿️</div>' +
+      '<div class="lead" style="background:var(--sea-soft);font-size:20px">🅿️</div>' +
       '<div class="body">' +
-        '<div class="name">' + esc(p.zone) + ' · <span class="num">' + esc(p.reg) + '</span></div>' +
-        '<div class="sub" style="margin-top:4px">' +
+        '<div class="name">' + esc(p.zone) + ' &nbsp;·&nbsp; <span class="num" style="letter-spacing:1px">' + esc(p.reg) + '</span></div>' +
+        '<div class="sub" style="margin-top:5px;display:flex;align-items:center;gap:8px">' +
           '<span class="pill-status ' + pillClass + '">' +
             '<span class="num">' + esc(rem.text) + '</span>' +
           '</span>' +
-          '&ensp;<span class="num" style="font-size:12px;color:var(--ash)">until ' + esc(fmtExpiry(p.expires)) + '</span>' +
+          '<span class="num" style="font-size:12px;color:var(--ash)">until <strong>' + esc(fmtExpiry(p.expires)) + '</strong></span>' +
         '</div>' +
       '</div>' +
       '<div class="trail">' +
-        '<button class="btn sm ghost" data-act="parkingExtend" data-id="' + esc(p.id) + '">+1h</button>' +
+        '<button class="btn sm ghost" data-act="parkingExtend" data-id="' + esc(p.id) + '" title="Extend by 1 hour (£1.40)">+1h</button>' +
       '</div>' +
     '</div>';
   }
@@ -83,35 +84,44 @@
   function renderZoneCard(z, myPermits) {
     var myPermit = myPermits.filter(function (p) { return p.zone === z.zone; })[0];
     var hasPermit = !!myPermit;
-    var permitsBefore = myPermits.length; // how many this household already holds
-    var displayPrice = permitMonthlyPrice(hasPermit ? myPermit.permitsBefore || 0 : permitsBefore);
+    var permitsBefore = myPermits.length;
+    // If already held, show what was paid when applied; otherwise show next price
+    var displayPrice = hasPermit
+      ? permitMonthlyPrice(myPermit.permitsBefore || 0)
+      : permitMonthlyPrice(permitsBefore);
 
-    var statusHtml = hasPermit
-      ? '<span class="pill-status ok" style="margin-left:6px;vertical-align:middle">Active</span>'
-      : '';
+    var dotHtml = '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + z.color + ';flex:0 0 auto;margin-right:6px"></span>';
 
-    var priceBreakdown = '<span class="num">£5</span>/mo 1st · <span class="num">£10</span> 2nd · <span class="num">£20</span>+ 3rd';
-
-    return '<div class="card" style="margin-bottom:10px;padding:14px 14px 12px">' +
+    var headerHtml =
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
-        '<div style="display:flex;align-items:center;gap:8px">' +
-          '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + z.color + ';flex:0 0 auto"></span>' +
+        '<div style="display:flex;align-items:center">' +
+          dotHtml +
           '<span style="font-weight:800;font-size:15px">' + esc(z.name) + '</span>' +
-          statusHtml +
+          (hasPermit ? '&ensp;<span class="pill-status ok" style="font-size:11px;padding:3px 8px">Active</span>' : '') +
         '</div>' +
         (hasPermit
-          ? '<span class="pill-status neutral">Ref <span class="num">' + esc(myPermit.ref) + '</span></span>'
+          ? '<span class="pill-status neutral" style="font-size:11px;padding:3px 8px">Ref&nbsp;<span class="num">' + esc(myPermit.ref) + '</span></span>'
           : '<button class="btn sm sea" data-act="parkingPermit" data-zone="' + z.zone + '" data-zname="' + esc(z.name) + '">Apply</button>') +
+      '</div>';
+
+    var areaHtml =
+      '<div style="font-size:13px;color:var(--ash);margin-bottom:4px">' + esc(z.area) + '</div>' +
+      '<div style="font-size:11.5px;color:var(--fog);margin-bottom:8px">' + esc(z.areaNote) + '</div>';
+
+    var priceHtml =
+      '<div class="kv" style="padding:4px 0;font-size:13px;border-top:1px solid var(--mist)">' +
+        '<span style="color:var(--ash)">Monthly permit</span>' +
+        '<span style="font-weight:800"><span class="num">' + money(displayPrice) + '</span>/mo</span>' +
       '</div>' +
-      '<div style="font-size:13px;color:var(--ash);margin-bottom:6px">' + esc(z.area) + '</div>' +
-      '<div class="kv" style="padding:4px 0;font-size:12.5px;color:var(--ash)">' +
-        '<span>Monthly permit</span>' +
-        '<span>' + (hasPermit
-          ? '<span class="num">£' + displayPrice + '</span>/mo'
-          : '<span class="num">£' + displayPrice + '</span>/mo') +
-        '</span>' +
-      '</div>' +
-      '<div style="font-size:11.5px;color:var(--fog);margin-top:2px">' + priceBreakdown + '</div>' +
+      (hasPermit
+        ? '<div style="font-size:11.5px;color:var(--ash);margin-top:2px">Renewal due monthly · manage at gibcarparks.com</div>'
+        : '<div style="font-size:11.5px;color:var(--fog);margin-top:3px">' +
+            '1st <span class="num">£5</span> · 2nd <span class="num">£10</span> · 3rd <span class="num">£20</span> · doubles each further permit' +
+          '</div>') +
+      '';
+
+    return '<div class="card" style="margin-bottom:10px;padding:14px 14px 12px">' +
+      headerHtml + areaHtml + priceHtml +
     '</div>';
   }
 
@@ -125,14 +135,14 @@
     var heroHtml = RW.ui.hero({
       emoji: '🅿️',
       title: 'Parking',
-      sub: 'Pay & display · Residential permits · Gibraltar Car Parks Ltd',
+      sub: 'Pay & Display · Residential Permits · Gibraltar Car Parks Ltd',
       accent: '#1455c0',
-      chips: ['gibcarparks.com', 'Zones 1–4', 'Scarcity warning'],
+      chips: ['gibcarparks.com', 'Zones 1–4', 'Spaces genuinely scarce'],
     });
 
     // --- Active sessions ---
     var active = activeSessions();
-    var sessionsHtml = '';
+    var sessionsHtml;
     if (active.length) {
       var sessionRows = active.map(renderActiveSession).join('');
       sessionsHtml =
@@ -141,7 +151,7 @@
     } else {
       sessionsHtml =
         RW.ui.sectionTitle('Active sessions') +
-        RW.ui.empty('🅿️', 'No active sessions. Pay below to start one.');
+        RW.ui.empty('🅿️', 'No active sessions — pay below to start parking.');
     }
 
     // --- Pay & Display form ---
@@ -151,53 +161,62 @@
 
     var durOpts = DURATIONS.map(function (d, i) {
       return '<button class="' + (i === 0 ? 'on' : '') + '" data-act="parkingPickDur" data-v="' + d.hours + '" data-p="' + d.price + '">' +
-        esc(d.label) + ' · <span class="num">' + money(d.price) + '</span>' +
+        esc(d.label) + '&ensp;<span class="num">' + money(d.price) + '</span>' +
       '</button>';
     }).join('');
 
     var payForm =
       '<div class="card" style="margin-top:8px">' +
-      '<label class="fld">Car park</label>' +
-      '<div class="seg" id="pk-zone" data-val="' + esc(CAR_PARKS[0].id) + '">' + parkOpts + '</div>' +
-      '<div id="pk-zone-hint" style="font-size:11.5px;color:var(--ash);margin-top:4px">' + esc(CAR_PARKS[0].hint) + '</div>' +
-      '<label class="fld" style="margin-top:12px">Vehicle registration</label>' +
-      '<input class="input" id="pk-reg" maxlength="12" placeholder="e.g. GBZ 123" ' +
-        'style="text-transform:uppercase;letter-spacing:1px;font-weight:700" ' +
-        'data-act="parkingRegInput">' +
-      '<label class="fld" style="margin-top:12px">Duration</label>' +
-      '<div class="seg" id="pk-dur" data-val="1" data-p="1.4">' + durOpts + '</div>' +
-      '<div class="kv total" style="margin-top:14px">' +
-        '<span>Total</span>' +
-        '<span id="pk-total" class="num">' + money(DURATIONS[0].price) + '</span>' +
-      '</div>' +
-      '<button class="btn" style="margin-top:14px" data-act="parkingPay">Pay &amp; Display</button>' +
-      '<div class="muted tiny" style="margin-top:8px;text-align:center">' +
-        'Operated by Gibraltar Car Parks Ltd · ' +
-        '<span class="link" style="color:var(--sea);cursor:pointer" data-act="nav" data-route="https://parking.gibcarparks.com/">gibcarparks.com</span>' +
-      '</div>' +
+        '<label class="fld">Car park</label>' +
+        '<div class="seg" id="pk-zone" data-val="' + esc(CAR_PARKS[0].id) + '">' + parkOpts + '</div>' +
+        '<div id="pk-zone-hint" style="font-size:11.5px;color:var(--ash);margin-top:5px;min-height:16px">' + esc(CAR_PARKS[0].hint) + '</div>' +
+        '<label class="fld" style="margin-top:12px">Vehicle registration</label>' +
+        '<input class="input" id="pk-reg" maxlength="12" placeholder="e.g. GBZ 123" autocomplete="off" ' +
+          'style="text-transform:uppercase;letter-spacing:2px;font-weight:800;font-size:17px" ' +
+          'oninput="var p=this.selectionStart;this.value=this.value.toUpperCase();this.setSelectionRange(p,p)">' +
+        '<label class="fld" style="margin-top:12px">Duration</label>' +
+        '<div class="seg" id="pk-dur" data-val="1" data-p="1.4">' + durOpts + '</div>' +
+        '<div class="kv total" style="margin-top:14px">' +
+          '<span>Total</span>' +
+          '<span id="pk-total" class="num">' + money(DURATIONS[0].price) + '</span>' +
+        '</div>' +
+        '<button class="btn" style="margin-top:14px" data-act="parkingPay">Pay &amp; Display</button>' +
+        '<p style="margin:8px 0 0;text-align:center;font-size:12px;color:var(--ash)">' +
+          'Operated by Gibraltar Car Parks Ltd &nbsp;·&nbsp; ' +
+          '<span style="color:var(--sea);font-weight:700;cursor:pointer" data-act="nav" data-route="https://parking.gibcarparks.com/">gibcarparks.com ↗</span>' +
+        '</p>' +
       '</div>';
 
     // --- Find a space hint ---
     var findHint =
-      '<div class="card" style="margin-top:10px;padding:12px 14px;display:flex;align-items:center;gap:12px">' +
-      '<span style="font-size:22px">🔍</span>' +
-      '<div>' +
-        '<div style="font-weight:700;font-size:13.5px">Find a space</div>' +
-        '<div style="font-size:12px;color:var(--ash);margin-top:2px">Check live availability at <strong>gibcarparks.com</strong> — spaces fill fast in Gibraltar.</div>' +
-      '</div>' +
+      '<div class="card" style="margin-top:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;border-left:3px solid var(--sea)">' +
+        '<span style="font-size:24px;flex:0 0 auto">🔍</span>' +
+        '<div>' +
+          '<div style="font-weight:700;font-size:13.5px">Check live availability</div>' +
+          '<div style="font-size:12px;color:var(--ash);margin-top:2px">' +
+            'Spaces fill fast — check <strong>gibcarparks.com</strong> before driving. ' +
+            'The app also sends expiry alerts so you never overstay.' +
+          '</div>' +
+        '</div>' +
       '</div>';
 
-    // --- Residential Permit cards ---
+    // --- Residential Permit zone cards ---
     var myPermits = RW.S.parkingPermits;
     var zoneCards = RPS_ZONES.map(function (z) {
       return renderZoneCard(z, myPermits);
     }).join('');
 
+    var scarcityNote =
+      '<div class="card" style="margin-bottom:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;background:var(--gold-soft)">' +
+        '<span style="font-size:20px">⚠️</span>' +
+        '<div style="font-size:12.5px;color:var(--amber);font-weight:700">' +
+          'Parking is genuinely scarce in Gibraltar. Permit pricing escalates per household to discourage multi-car ownership — apply for the zone you actually live in.' +
+        '</div>' +
+      '</div>';
+
     var permitsSection =
       RW.ui.sectionTitle('Residential Parking Scheme') +
-      '<div class="muted tiny" style="margin-bottom:12px">' +
-        'Zones 1–4 across Gibraltar. Permit pricing escalates per household — apply early, spaces are genuinely scarce.' +
-      '</div>' +
+      scarcityNote +
       zoneCards;
 
     // --- Expired / recent history ---
@@ -205,13 +224,16 @@
     var historyHtml = '';
     if (expired.length) {
       var histRows = expired.slice().reverse().slice(0, 5).map(function (p) {
-        return RW.ui.row({
-          lead: '🅿️',
-          leadBg: 'var(--cloud)',
-          name: p.zone + ' · ' + p.reg,
-          sub: 'Expired · ' + p.duration + ' · Ref ' + p.ref,
-          trail: '<span class="num" style="color:var(--ash)">' + money(p.price) + '</span>',
-        });
+        return '<div class="row">' +
+          '<div class="lead" style="background:var(--cloud);font-size:20px">🅿️</div>' +
+          '<div class="body">' +
+            '<div class="name">' + esc(p.zone) + '</div>' +
+            '<div class="sub"><span class="num" style="letter-spacing:1px">' + esc(p.reg) + '</span>' +
+              ' · ' + esc(p.duration) + ' · Ref <span class="num">' + esc(p.ref) + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="trail"><span class="num" style="color:var(--ash)">' + money(p.price) + '</span></div>' +
+        '</div>';
       }).join('');
       historyHtml =
         RW.ui.sectionTitle('Recent sessions') +
@@ -242,10 +264,10 @@
           '<div class="lead" style="background:var(--sea-soft)">🅿️</div>' +
           '<div class="body">' +
             '<div class="name">Parking · ' + esc(p.zone) + '</div>' +
-            '<div class="sub"><span class="num">' + esc(p.reg) + '</span> · ' + esc(p.duration) +
+            '<div class="sub"><span class="num" style="letter-spacing:1px">' + esc(p.reg) + '</span> · ' + esc(p.duration) +
               (isActive
                 ? ' · <span class="pill-status ' + (rem.isWarn ? 'warn' : 'ok') + '"><span class="num">' + esc(rem.text) + '</span></span>'
-                : ' · Expired') +
+                : ' · <span style="color:var(--ash)">Expired</span>') +
             '</div>' +
           '</div>' +
           '<div class="trail"><span class="num">' + money(p.price) + '</span></div>' +
@@ -264,10 +286,10 @@
     section: 'daily',
     order: 60,
     render,
-    tick: 30000, // refresh every 30s so the live countdown updates
+    tick: 15000, // refresh every 15s so live countdowns stay accurate
     actions: {
 
-      // Toggle car park selection — also update the hint text without full re-render
+      // Toggle car park selection — also updates the hint text without a full re-render.
       parkingPickZone: function (el) {
         var seg = el.closest('.seg');
         seg.querySelectorAll('button').forEach(function (b) { b.classList.remove('on'); });
@@ -278,7 +300,7 @@
         if (hintEl && cp) hintEl.textContent = cp.hint;
       },
 
-      // Toggle duration selection and update displayed total
+      // Toggle duration selection and update the displayed total.
       parkingPickDur: function (el) {
         var seg = el.closest('.seg');
         seg.querySelectorAll('button').forEach(function (b) { b.classList.remove('on'); });
@@ -289,43 +311,36 @@
         if (totalEl) totalEl.textContent = money(parseFloat(el.dataset.p));
       },
 
-      // Uppercase reg plate as user types (input event via data-act)
-      parkingRegInput: function (el) {
-        var pos = el.selectionStart;
-        el.value = el.value.toUpperCase();
-        el.setSelectionRange(pos, pos);
-      },
-
-      // Pay for a pay & display session
+      // Pay for a pay & display session.
       parkingPay: function () {
         var zoneSeg  = document.getElementById('pk-zone');
         var durSeg   = document.getElementById('pk-dur');
         var regInput = document.getElementById('pk-reg');
 
-        var cpId   = zoneSeg ? zoneSeg.dataset.val : CAR_PARKS[0].id;
+        var cpId   = zoneSeg  ? zoneSeg.dataset.val  : CAR_PARKS[0].id;
         var hours  = parseFloat(durSeg ? durSeg.dataset.val : '1');
         var price  = parseFloat(durSeg ? durSeg.dataset.p   : '1.4');
         var rawReg = regInput ? regInput.value.trim().toUpperCase() : '';
 
         if (!rawReg) {
-          RW.toast('Please enter your vehicle registration');
+          RW.toast('Enter your vehicle registration first');
           return;
         }
 
-        // Validate numbers to avoid NaN creeping in
-        if (isNaN(hours) || hours <= 0) hours = 1;
-        if (isNaN(price) || price <= 0) price = 1.40;
+        // Guard against NaN / bad values
+        if (!isFinite(hours) || hours <= 0) hours = 1;
+        if (!isFinite(price) || price <= 0) price = 1.40;
 
         var cp = CAR_PARKS.filter(function (c) { return c.id === cpId; })[0] || CAR_PARKS[0];
-        var durLabel = DURATIONS.filter(function (d) { return d.hours === hours; })[0];
-        var durationText = durLabel ? durLabel.label : (hours + 'h');
+        var durEntry = DURATIONS.filter(function (d) { return d.hours === hours; })[0];
+        var durationText = durEntry ? durEntry.label : (hours + 'h');
 
         if (!RW.store.debit(price, 'Parking · ' + cp.zone)) {
-          RW.toast('Insufficient wallet balance — top up first');
+          RW.toast('Not enough balance — top up your wallet first');
           return;
         }
 
-        var now = Date.now();
+        var now     = Date.now();
         var expires = now + (hours * 3600000);
 
         RW.S.parking = RW.S.parking || [];
@@ -342,40 +357,40 @@
         });
 
         RW.store.save();
-        RW.toast('🅿️ Paid! Active until ' + fmtExpiry(expires) + ' · ' + rawReg);
+        RW.toast('🅿️ ' + rawReg + ' — paid until ' + fmtExpiry(expires) + ' · ' + money(price) + ' debited');
         RW.render();
       },
 
-      // Extend an active session by 1 hour (£1.40)
+      // Extend an active session by 1 hour (£1.40).
       parkingExtend: function (el) {
         RW.S.parking = RW.S.parking || [];
-        var id = el.dataset.id;
+        var id      = el.dataset.id;
         var session = RW.S.parking.filter(function (p) { return p.id === id; })[0];
         if (!session) { RW.toast('Session not found'); return; }
 
         var extPrice = 1.40;
         if (!RW.store.debit(extPrice, 'Parking extend · ' + session.zone)) {
-          RW.toast('Insufficient wallet balance — top up first');
+          RW.toast('Not enough balance — top up your wallet first');
           return;
         }
 
-        // Extend from current expiry (or now if somehow already expired)
+        // Extend from current expiry (or now if somehow already lapsed).
         var base = Math.max(session.expires, Date.now());
-        session.expires = base + 3600000;
+        session.expires  = base + 3600000;
         session.duration = session.duration + ' +1h';
 
         RW.store.save();
-        RW.toast('⏱️ Extended — now expires ' + fmtExpiry(session.expires));
+        RW.toast('⏱️ Extended · ' + session.reg + ' now expires ' + fmtExpiry(session.expires));
         RW.render();
       },
 
-      // Apply for a residential parking permit
+      // Apply for a residential parking permit.
       parkingPermit: function (el) {
         RW.S.parkingPermits = RW.S.parkingPermits || [];
         var zone  = parseInt(el.dataset.zone, 10);
         var zname = el.dataset.zname || ('Zone ' + zone);
 
-        if (isNaN(zone)) { RW.toast('Invalid zone'); return; }
+        if (!isFinite(zone) || zone < 1 || zone > 4) { RW.toast('Invalid zone'); return; }
 
         var alreadyHeld = RW.S.parkingPermits.filter(function (p) { return p.zone === zone; })[0];
         if (alreadyHeld) {
@@ -386,19 +401,24 @@
         var permitsBefore = RW.S.parkingPermits.length;
         var monthlyPrice  = permitMonthlyPrice(permitsBefore);
 
+        if (!RW.store.debit(monthlyPrice, 'Parking permit · ' + zname)) {
+          RW.toast('Not enough balance — top up your wallet first');
+          return;
+        }
+
         RW.S.parkingPermits.push({
-          id:           uid(),
-          ref:          ref('RP'),
-          t:            Date.now(),
-          zone:         zone,
-          zoneName:     zname,
-          monthlyPrice: monthlyPrice,
-          permitsBefore: permitsBefore, // snapshot for display later
-          status:       'Applied',
+          id:            uid(),
+          ref:           ref('RP'),
+          t:             Date.now(),
+          zone:          zone,
+          zoneName:      zname,
+          monthlyPrice:  monthlyPrice,
+          permitsBefore: permitsBefore, // snapshot for display
+          status:        'Active',
         });
 
         RW.store.save();
-        RW.toast('Applied for ' + zname + ' — ' + money(monthlyPrice) + '/mo · Ref saved');
+        RW.toast('✅ ' + zname + ' permit applied — ' + money(monthlyPrice) + '/mo · ref saved');
         RW.render();
       },
     },

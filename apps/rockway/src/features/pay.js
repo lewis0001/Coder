@@ -29,35 +29,44 @@
     return requests().filter(function (r) { return r.status === 'pending'; }).length;
   }
 
-  // Render a row of contact avatar buttons.
-  // Each avatar shows the contact emoji inside a circle; selected contacts get
-  // a brand-coloured ring and a small tick badge.  actionName / multiSelect
-  // controls single vs. multi-select behaviour.
-  function avatarRow(selectedIds, actionName) {
+  // Render a styled row of contact avatar buttons.
+  // selectedIds: string (single) or array (multi-select).
+  // actionName: data-act to fire on click.
+  // accentVar: CSS var string for the selection ring colour.
+  function avatarRow(selectedIds, actionName, accentVar) {
     var isArray = Array.isArray(selectedIds);
-    return '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 4px">' +
-      contacts().map(function (c) {
+    var accent = accentVar || 'var(--brand)';
+    var ctacts = contacts();
+    if (!ctacts.length) {
+      return '<p style="font-size:13px;color:var(--ash);margin:8px 0 12px">No contacts saved yet — add some in your Account.</p>';
+    }
+    return '<div style="display:flex;flex-wrap:wrap;gap:12px;margin:10px 0 6px;padding:2px 0">' +
+      ctacts.map(function (c) {
         var active = isArray
           ? selectedIds.indexOf(c.id) !== -1
           : selectedIds === c.id;
-        var ringColor = isArray ? 'var(--sea)' : 'var(--brand)';
-        var ring = active
-          ? 'box-shadow:0 0 0 3px ' + ringColor + ';'
+        var bgStyle = active
+          ? 'background:' + accent + ';'
+          : 'background:var(--cloud);';
+        var ringStyle = active
+          ? 'box-shadow:0 0 0 3px ' + accent + ',0 0 0 5px rgba(255,255,255,0.9);'
           : 'box-shadow:0 0 0 2px var(--mist);';
-        return '<button style="display:flex;flex-direction:column;align-items:center;gap:4px;' +
-          'background:transparent;border:0;cursor:pointer;padding:0;position:relative" ' +
+        var emojiColor = active ? 'filter:brightness(1.1);' : '';
+        var nameWeight = active ? '800' : '600';
+        var nameColor = active ? 'var(--ink)' : 'var(--ash)';
+        return '<button style="display:flex;flex-direction:column;align-items:center;gap:5px;' +
+          'background:transparent;border:0;cursor:pointer;padding:2px;position:relative;transition:transform .12s" ' +
           'data-act="' + actionName + '" data-cid="' + esc(c.id) + '">' +
-          '<span style="width:50px;height:50px;border-radius:50%;background:var(--cloud);' +
-          'display:grid;place-items:center;font-size:22px;transition:box-shadow .15s;' + ring + '">' +
-          esc(c.emoji) +
-          (active ? '<span style="position:absolute;top:-2px;right:-2px;' +
-            'width:16px;height:16px;border-radius:50%;background:' + ringColor + ';' +
-            'display:grid;place-items:center;font-size:9px;color:#fff;font-weight:900;' +
-            'border:2px solid #fff">✓</span>' : '') +
-          '</span>' +
-          '<span style="font-size:11px;font-weight:' + (active ? '800' : '600') + ';' +
-          'color:' + (active ? 'var(--ink)' : 'var(--ash)') + ';max-width:50px;' +
-          'overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+          '<span style="width:54px;height:54px;border-radius:50%;' + bgStyle + ringStyle +
+          'display:grid;place-items:center;font-size:24px;transition:box-shadow .15s,background .15s;' + emojiColor + '">' +
+          esc(c.emoji) + '</span>' +
+          (active
+            ? '<span style="position:absolute;top:0;right:0;width:18px;height:18px;border-radius:50%;' +
+              'background:' + accent + ';display:grid;place-items:center;font-size:10px;' +
+              'color:#fff;font-weight:900;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.2)">✓</span>'
+            : '') +
+          '<span style="font-size:11px;font-weight:' + nameWeight + ';color:' + nameColor + ';' +
+          'max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .15s">' +
           esc(c.name) + '</span>' +
           '</button>';
       }).join('') + '</div>';
@@ -66,47 +75,83 @@
   // ---- tab render functions ----
 
   function renderSend() {
-    var avatars = avatarRow(_sendContactId, 'paySelectSend');
+    var ctacts = contacts();
     var contact = _sendContactId ? contactById(_sendContactId) : null;
+    var avatars = avatarRow(_sendContactId, 'paySelectSend', 'var(--brand)');
+    var selectedBanner = contact
+      ? '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:8px;' +
+        'background:var(--brand-soft,#eef0ff);border-radius:10px;font-size:13px;font-weight:700;color:var(--brand)">' +
+        '<span style="font-size:18px">' + esc(contact.emoji) + '</span>' +
+        'Paying <span style="margin-left:4px">' + esc(contact.name) + '</span>' +
+        '</div>'
+      : '';
+
     return '<div class="card" style="margin-top:8px">' +
       '<label class="fld" style="margin-top:0">Who are you paying?</label>' +
-      avatars +
-      (contact
-        ? '<div style="margin-bottom:8px;font-size:13px;color:var(--ash)">Paying <strong>' + esc(contact.name) + '</strong></div>'
-        : '') +
+      (ctacts.length === 0
+        ? RW.ui.empty('👤', 'No contacts yet — add some in Account.')
+        : avatars + selectedBanner) +
       '<label class="fld">Amount (£)</label>' +
       '<input class="input num" id="pay-send-amount" type="number" min="0.01" step="0.01" placeholder="0.00">' +
-      '<label class="fld">Note (optional)</label>' +
+      '<label class="fld">Note <span style="font-weight:500;color:var(--ash)">(optional)</span></label>' +
       '<input class="input" id="pay-send-note" placeholder="e.g. Pizza at Casemates">' +
       '<button class="btn" style="margin-top:14px" data-act="paySend">Send money</button>' +
       '</div>';
   }
 
   function renderRequest() {
-    var avatars = avatarRow(_reqContactId, 'paySelectRequest');
+    var ctacts = contacts();
     var contact = _reqContactId ? contactById(_reqContactId) : null;
+    var avatars = avatarRow(_reqContactId, 'paySelectRequest', 'var(--sea)');
+    var selectedBanner = contact
+      ? '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:8px;' +
+        'background:var(--sea-soft,#e8f0ff);border-radius:10px;font-size:13px;font-weight:700;color:var(--sea)">' +
+        '<span style="font-size:18px">' + esc(contact.emoji) + '</span>' +
+        'Requesting from <span style="margin-left:4px">' + esc(contact.name) + '</span>' +
+        '</div>'
+      : '';
+
     return '<div class="card" style="margin-top:8px">' +
       '<label class="fld" style="margin-top:0">Request from who?</label>' +
-      avatars +
-      (contact
-        ? '<div style="margin-bottom:8px;font-size:13px;color:var(--ash)">Requesting from <strong>' + esc(contact.name) + '</strong></div>'
-        : '') +
+      (ctacts.length === 0
+        ? RW.ui.empty('👤', 'No contacts yet — add some in Account.')
+        : avatars + selectedBanner) +
       '<label class="fld">Amount (£)</label>' +
       '<input class="input num" id="pay-req-amount" type="number" min="0.01" step="0.01" placeholder="0.00">' +
-      '<label class="fld">Note (optional)</label>' +
+      '<label class="fld">Note <span style="font-weight:500;color:var(--ash)">(optional)</span></label>' +
       '<input class="input" id="pay-req-note" placeholder="e.g. Drinks at Ocean Village">' +
       '<button class="btn sea" style="margin-top:14px" data-act="payRequest">Request money</button>' +
       '</div>';
   }
 
   function renderSplit() {
-    var avatars = avatarRow(_splitContactIds, 'payToggleSplit');
+    var ctacts = contacts();
+    var avatars = avatarRow(_splitContactIds, 'payToggleSplit', 'var(--sea)');
     var n = _splitContactIds.length;
 
-    // Per-person breakdown: show a kv row for each selected contact + you
+    // Summary stat chips: how many people + who's in
+    var summaryChips = '';
+    if (n > 0) {
+      var names = _splitContactIds.map(function (cid) {
+        var c = contactById(cid);
+        return c ? esc(c.emoji) + ' ' + esc(c.name) : '';
+      }).filter(Boolean);
+      summaryChips =
+        '<div class="chips" style="margin:6px 0 10px">' +
+        '<span class="chip" style="background:var(--sea-soft,#e8f0ff);color:var(--sea)">' +
+        (n + 1) + ' people' +
+        '</span>' +
+        names.map(function (nm) {
+          return '<span class="chip">' + nm + '</span>';
+        }).join('') +
+        '</div>';
+    }
+
+    // Per-person breakdown panel (shown after contact selection)
     var breakdownHtml = '';
     if (n > 0) {
-      var peopleRows = '<div class="kv" style="color:var(--ash)">' +
+      var shareRows =
+        '<div class="kv" style="color:var(--ash)">' +
         '<span>You</span>' +
         '<span id="pay-split-share-you" class="num">—</span>' +
         '</div>' +
@@ -114,16 +159,17 @@
           var c = contactById(cid);
           if (!c) return '';
           return '<div class="kv" style="color:var(--ash)">' +
-            '<span>' + esc(c.emoji) + ' ' + esc(c.name) + '</span>' +
+            '<span>' + esc(c.emoji) + ' ' + esc(c.name) + '</span>' +
             '<span class="pay-split-share num">—</span>' +
             '</div>';
         }).join('');
 
       breakdownHtml =
-        '<div style="margin-top:14px;border-top:1px solid var(--mist);padding-top:10px">' +
-        '<div style="font-size:12px;font-weight:700;color:var(--ash);margin-bottom:6px">' +
-        'SPLIT BETWEEN ' + (n + 1) + ' PEOPLE</div>' +
-        peopleRows +
+        '<div style="margin-top:14px;border-top:1px solid var(--mist);padding-top:12px">' +
+        '<div style="font-size:11.5px;font-weight:700;letter-spacing:.04em;color:var(--ash);margin-bottom:8px">' +
+        'SPLIT BETWEEN ' + (n + 1) + ' PEOPLE' +
+        '</div>' +
+        shareRows +
         '<div class="kv total">' +
         '<span>Each person pays</span>' +
         '<span id="pay-split-share" class="num">—</span>' +
@@ -131,15 +177,21 @@
         '</div>';
     }
 
+    var btnLabel = n > 0
+      ? 'Request from all · ' + n + (n === 1 ? ' person' : ' people')
+      : 'Select contacts first';
+
     return '<div class="card" style="margin-top:8px">' +
-      '<label class="fld" style="margin-top:0">Split with (select one or more)</label>' +
-      avatars +
+      '<label class="fld" style="margin-top:0">Split with <span style="font-weight:500;color:var(--ash)">(tap to select)</span></label>' +
+      (ctacts.length === 0
+        ? RW.ui.empty('👤', 'No contacts yet — add some in Account.')
+        : avatars + summaryChips) +
       '<label class="fld">Total bill (£)</label>' +
       '<input class="input num" id="pay-split-total" type="number" min="0.01" step="0.01" placeholder="0.00" ' +
       'oninput="(RW.getAction(\'paySplitCalc\'))(this)">' +
       breakdownHtml +
-      '<button class="btn gold" style="margin-top:14px" data-act="paySplitRequestAll"' +
-      (n === 0 ? ' disabled' : '') + '>Request from all · ' + (n > 0 ? n + ' people' : 'select contacts first') + '</button>' +
+      '<button class="btn gold" style="margin-top:16px" data-act="paySplitRequestAll"' +
+      (n === 0 ? ' disabled' : '') + '>' + btnLabel + '</button>' +
       '</div>';
   }
 
@@ -149,7 +201,10 @@
     var paid = reqs.filter(function (r) { return r.status !== 'pending'; });
 
     if (!reqs.length) {
-      return RW.ui.empty('✉️', 'No outstanding requests yet, mate.\nSend a request and it\'ll show up here — te llamo p\'atrá!');
+      return RW.ui.empty(
+        '✉️',
+        'No outstanding requests yet, mate.\nSend a request and it\'ll show up here — te llamo p\'atr\xe1!'
+      );
     }
 
     function reqCard(r) {
@@ -157,24 +212,29 @@
       var statusPill = isPending
         ? '<span class="pill-status warn">Pending</span>'
         : '<span class="pill-status ok">Paid</span>';
+      var cardOpacity = isPending ? '' : 'opacity:0.72;';
+      var amtColor = isPending ? 'color:var(--ink)' : 'color:var(--ash)';
+      var nameColor = isPending ? 'color:var(--ink)' : 'color:var(--ash)';
+      var leadBg = isPending ? 'background:var(--gold-soft)' : 'background:var(--green-soft)';
       var actions = isPending
-        ? '<div style="display:flex;gap:6px;margin-top:10px">' +
+        ? '<div style="display:flex;gap:8px;margin-top:10px">' +
           '<button class="btn sm ghost" style="flex:1" data-act="payRemind" data-rid="' + esc(r.id) + '">Remind</button>' +
           '<button class="btn sm" style="flex:1" data-act="payMarkPaid" data-rid="' + esc(r.id) + '">Mark paid</button>' +
           '</div>'
         : '';
-      return '<div style="padding:12px 0;border-bottom:1px solid var(--mist)">' +
+
+      return '<div style="padding:12px 0;border-bottom:1px solid var(--mist);' + cardOpacity + '">' +
         '<div style="display:flex;align-items:center;gap:10px">' +
-        '<div class="lead" style="background:var(--gold-soft);flex:0 0 auto">' + esc(r.emoji || '💸') + '</div>' +
+        '<div class="lead" style="border-radius:50%;' + leadBg + ';flex:0 0 auto">' + esc(r.emoji || '💸') + '</div>' +
         '<div style="flex:1;min-width:0">' +
-        '<div style="font-weight:700;font-size:14.5px">' + esc(r.name) + '</div>' +
-        '<div style="font-size:12.5px;color:var(--ash);margin-top:2px">' +
+        '<div style="font-weight:700;font-size:14.5px;' + nameColor + '">' + esc(r.name) + '</div>' +
+        '<div style="font-size:12px;color:var(--ash);margin-top:2px">' +
         (r.note ? esc(r.note) + ' · ' : '') + fmtTime(r.t) +
         '</div>' +
         '</div>' +
         '<div style="text-align:right;flex:0 0 auto">' +
-        '<div class="num" style="font-weight:800;font-size:15px">' + money(r.amount) + '</div>' +
-        '<div style="margin-top:4px">' + statusPill + '</div>' +
+        '<div class="num" style="font-weight:800;font-size:16px;' + amtColor + '">' + money(r.amount) + '</div>' +
+        '<div style="margin-top:5px">' + statusPill + '</div>' +
         '</div>' +
         '</div>' +
         actions +
@@ -185,32 +245,12 @@
 
     if (pending.length) {
       html += RW.ui.sectionTitle('Awaiting payment (' + pending.length + ')');
-      html += '<div class="card">' +
-        pending.map(reqCard).join('') +
-        '</div>';
+      html += '<div class="card">' + pending.map(reqCard).join('') + '</div>';
     }
 
     if (paid.length) {
-      html += RW.ui.sectionTitle('Settled up');
-      html += '<div class="card">' +
-        paid.map(function (r) {
-          return '<div style="padding:12px 0;border-bottom:1px solid var(--mist)">' +
-            '<div style="display:flex;align-items:center;gap:10px">' +
-            '<div class="lead" style="background:var(--green-soft);flex:0 0 auto">' + esc(r.emoji || '💸') + '</div>' +
-            '<div style="flex:1;min-width:0">' +
-            '<div style="font-weight:700;font-size:14.5px;color:var(--ash)">' + esc(r.name) + '</div>' +
-            '<div style="font-size:12.5px;color:var(--ash);margin-top:2px">' +
-            (r.note ? esc(r.note) + ' · ' : '') + fmtTime(r.t) +
-            '</div>' +
-            '</div>' +
-            '<div style="text-align:right;flex:0 0 auto">' +
-            '<div class="num" style="font-weight:800;font-size:15px;color:var(--ash)">' + money(r.amount) + '</div>' +
-            '<div style="margin-top:4px"><span class="pill-status ok">Paid</span></div>' +
-            '</div>' +
-            '</div>' +
-            '</div>';
-        }).join('') +
-        '</div>';
+      html += RW.ui.sectionTitle('Settled up ✔');
+      html += '<div class="card">' + paid.map(reqCard).join('') + '</div>';
     }
 
     return '<div style="margin-top:8px">' + html + '</div>';
@@ -220,14 +260,14 @@
   function render() {
     var pending = pendingCount();
     var pendingBadge = pending > 0
-      ? ' <span style="background:var(--brand);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:800;margin-left:4px">' + pending + '</span>'
+      ? ' <span style="background:var(--brand);color:#fff;border-radius:999px;' +
+        'padding:1px 7px;font-size:11px;font-weight:800;margin-left:4px">' + pending + '</span>'
       : '';
 
-    // Segmented tab bar
     var tabs = [
-      { id: 'send', label: '↑ Send' },
+      { id: 'send',    label: '↑ Send' },
       { id: 'request', label: '↓ Request' },
-      { id: 'split', label: '÷ Split' },
+      { id: 'split',   label: '÷ Split' },
       { id: 'pending', label: 'Requests' + pendingBadge },
     ];
     var seg = '<div class="seg" style="margin-top:8px">' +
@@ -237,16 +277,17 @@
       }).join('') + '</div>';
 
     var content;
-    if (_tab === 'send') content = renderSend();
+    if (_tab === 'send')         content = renderSend();
     else if (_tab === 'request') content = renderRequest();
-    else if (_tab === 'split') content = renderSplit();
-    else content = renderPending();
+    else if (_tab === 'split')   content = renderSplit();
+    else                         content = renderPending();
 
     var heroHtml = RW.ui.hero({
       emoji: '💸',
       title: 'Pay',
-      sub: 'Send money, request, or split a bill',
+      sub: 'Send money, request, or split a bill on the Rock',
       accent: '#1455c0',
+      chips: pending > 0 ? [pending + ' pending'] : [],
     });
 
     var body = seg + content;
@@ -272,7 +313,6 @@
 
       paySelectSend: function (el) {
         var cid = el.dataset.cid || '';
-        // toggle off if already selected
         _sendContactId = _sendContactId === cid ? '' : cid;
         RW.render();
       },
@@ -308,19 +348,19 @@
           var formatted = money(share);
           if (shareEl) shareEl.textContent = formatted;
           if (shareYouEl) shareYouEl.textContent = formatted;
-          shareEls.forEach(function (el) { el.textContent = formatted; });
+          shareEls.forEach(function (s) { s.textContent = formatted; });
         } else {
           if (shareEl) shareEl.textContent = '—';
           if (shareYouEl) shareYouEl.textContent = '—';
-          shareEls.forEach(function (el) { el.textContent = '—'; });
+          shareEls.forEach(function (s) { s.textContent = '—'; });
         }
       },
 
       paySend: function () {
-        var amtInput = document.getElementById('pay-send-amount');
+        var amtInput  = document.getElementById('pay-send-amount');
         var noteInput = document.getElementById('pay-send-note');
         var amount = amtInput ? parseFloat(amtInput.value) : NaN;
-        var note = noteInput ? noteInput.value.trim() : '';
+        var note   = noteInput ? noteInput.value.trim() : '';
 
         if (!_sendContactId) {
           RW.toast('Choose a contact first, mate');
@@ -344,16 +384,16 @@
           return;
         }
 
-        RW.toast('Sent ' + money(amount) + ' to ' + contact.name);
+        RW.toast('Sent ' + money(amount) + ' to ' + contact.name + ' — ¡qu\xe9 tal, mate!');
         _sendContactId = '';
         RW.render();
       },
 
       payRequest: function () {
-        var amtInput = document.getElementById('pay-req-amount');
+        var amtInput  = document.getElementById('pay-req-amount');
         var noteInput = document.getElementById('pay-req-note');
         var amount = amtInput ? parseFloat(amtInput.value) : NaN;
-        var note = noteInput ? noteInput.value.trim() : '';
+        var note   = noteInput ? noteInput.value.trim() : '';
 
         if (!_reqContactId) {
           RW.toast('Choose a contact first, mate');
@@ -383,7 +423,7 @@
         requests().push(req);
         RW.store.save();
 
-        RW.toast('Requested ' + money(amount) + ' from ' + contact.name + ' — te llamo p\'atrá!');
+        RW.toast('Requested ' + money(amount) + ' from ' + contact.name + ' — te llamo p\'atr\xe1!');
         _reqContactId = '';
         _tab = 'pending';
         RW.render();
@@ -420,7 +460,7 @@
         });
 
         RW.store.save();
-        RW.toast('Requested ' + money(share) + ' each from ' + n + ' people — ¡qué tal, mate!');
+        RW.toast('Requested ' + money(share) + ' each from ' + n + (n === 1 ? ' person' : ' people') + ' — ¡qu\xe9 tal, mate!');
         _splitContactIds = [];
         _tab = 'pending';
         RW.render();
@@ -435,7 +475,7 @@
         req.status = 'paid';
         RW.store.credit(req.amount, 'Received from ' + req.name + (req.note ? ' · ' + req.note : ''));
         RW.store.save();
-        RW.toast(money(req.amount) + ' from ' + req.name + ' — received!');
+        RW.toast(money(req.amount) + ' from ' + req.name + ' — received, ¡qu\xe9 tal!');
         RW.render();
       },
 
@@ -458,9 +498,10 @@
       return {
         t: r.t,
         html: '<div class="card row">' +
-          '<div class="lead" style="background:var(--green-soft)">' + esc(r.emoji || '💸') + '</div>' +
+          '<div class="lead" style="border-radius:50%;background:var(--green-soft)">' + esc(r.emoji || '💸') + '</div>' +
           '<div class="body">' +
-          '<div class="name">💸 Request: ' + esc(r.name) + ' · <span class="num">' + money(r.amount) + '</span></div>' +
+          '<div class="name">💸 Request: ' + esc(r.name) +
+          ' · <span class="num">' + money(r.amount) + '</span></div>' +
           '<div class="sub">' + (r.note ? esc(r.note) + ' · ' : '') + fmtTime(r.t) + '</div>' +
           '</div>' +
           '<div class="trail">' + statusPill + '</div>' +

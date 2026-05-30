@@ -116,6 +116,12 @@ if (RW.S.orders.length < 1) fail('order not created');
 else if (RW.S.wallet >= before) fail('wallet not debited'); else ok('wallet debited ' + before + ' → ' + RW.S.wallet);
 act('topupWallet', {});
 act('setLang', { v: 'yan' });
+// shop add-to-basket (shop renamed its cart actions — lock the flow)
+location.hash = '#/shop/s-morrisons';
+const beforeCount = RW.store.cartCount();
+act('shopAdd', { key: 'shop:s-morrisons:p1' });
+if (RW.store.cartCount() <= beforeCount) fail('shopAdd did not add to basket');
+else ok('shopAdd works (cart ' + RW.store.cartCount() + ')');
 
 /* ---------------- summary ---------------- */
 console.log('\n' + (failures ? '✗ ' + failures + ' failure(s)' : '✓ all checks passed') + '  ·  ' + features.length + ' features registered');
