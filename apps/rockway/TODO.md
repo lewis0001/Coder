@@ -26,16 +26,21 @@ Status: ✅ done · 🔨 in progress · ⏳ queued · 🔬 needs research
 - [x] Gov.gi · Health (GHA/PCC) · Jobs · Property · Marketplace
 
 ### Explore & connect
-- [x] What's On (events) · Explore (attractions/tours) · Chat (Llanito threads)
-- [ ] 🔨 News (local headlines + noticeboard) — agent finishing
+- [x] What's On (events) · Explore (attractions/tours) · Chat (Llanito threads) · News (headlines + noticeboard)
 
-## Cross-cutting upgrades (next)
+## Refinement pass — DONE (per-module, via parallel agents)
+- [x] All 25 modules refined: heroes, filter chips, tabular figures, empty
+  states, status pills, richer detail, edge-cases, tasteful Llanito copy.
+- [x] Shared design system lifted (RW.ui.hero/chips; richer Rock illustration;
+  CSS num/pill/chip variants).
+- [x] Emoji cleanup (gov/topup/events) + fixed news default-filter empty-feed bug.
+- [x] Smoke hardened: shop-add flow + top-level feed-not-empty assertions.
+
+## Cross-cutting upgrades (next, optional)
 - [ ] "Everything" launcher sheet (search across features)
-- [ ] Dark "Night Rock" theme + time-of-day palette already in Rock SVG
+- [ ] Dark "Night Rock" theme (time-of-day palette already in Rock SVG)
 - [ ] Live territory signals on Home (runway crossing for pedestrians, ships)
-- [ ] Llanito copy pass across all features
 - [ ] PWA manifest + offline cache
-- [ ] Per-feature polish review pass (consistency, empty states)
 
 ## Notes for continuity
 - Manifest in `src/core/boot.js` lists every feature file.
