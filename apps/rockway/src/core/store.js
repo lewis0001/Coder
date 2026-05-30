@@ -24,9 +24,22 @@
         { id: 'c3', name: 'Lucia', emoji: '👩🏻' },
         { id: 'c4', name: 'Kayan', emoji: '🧑🏼' },
       ],
-      chats: {},                   // chatId -> [{from,text,t}]
+      chats: {},                   // chatId -> { id,name,emoji,messages:[{from,text,t}] }
       listings: [],                // marketplace items the user posted
       savings: 0,                  // savings pot
+      // ---- per-feature persisted collections (pre-added so feature modules
+      //      never need to edit core; guard reads with `|| []` regardless) ----
+      parking: [],                 // parking sessions/permits
+      prescriptions: [],           // health repeat prescriptions
+      jobApps: [],                 // job applications
+      savedProperties: [],         // saved property listings
+      viewings: [],                // property viewing requests
+      redemptions: [],             // rewards redeemed
+      topups: [],                  // mobile/eSIM top-ups
+      payRequests: [],             // P2P money requests
+      bills: {},                   // billerId -> { paidAt, amount }
+      savedListings: [],           // marketplace saved items
+      newsBookmarks: [],           // saved news items
       txns: [
         { id: uid(), t: Date.now() - 86400000, label: 'Top-up · Visa ••42', amt: +50, kind: 'in' },
         { id: uid(), t: Date.now() - 43200000, label: "Roy's Cod Plaice", amt: -13.5, kind: 'out' },

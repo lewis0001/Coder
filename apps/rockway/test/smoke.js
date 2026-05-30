@@ -57,7 +57,7 @@ vm.createContext(sandbox);
 
 /* ---------------- load core + features ---------------- */
 const FILES = [
-  'src/core/util.js', 'src/core/store.js', 'src/core/registry.js', 'src/core/ui.js', 'src/core/router.js',
+  'src/core/util.js', 'src/core/store.js', 'src/core/registry.js', 'src/core/ui.js', 'src/core/rock.js', 'src/core/router.js',
 ];
 // derive feature list from boot manifest so test stays in sync
 const boot = fs.readFileSync(path.join(ROOT, 'src/core/boot.js'), 'utf8');
