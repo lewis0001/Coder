@@ -4,9 +4,11 @@
   const { esc, money, ref, fmtTime } = RW.util;
 
   // ---- Attractions & experiences ----
-  // Upper Rock Nature Reserve: combined ticket covers St Michael's Cave,
-  // Apes' Den, Great Siege Tunnels, Moorish Castle, Skywalk, Windsor
-  // Suspension Bridge — ~£19 adult (2026 estimate).
+  // Categories: nature / caves / views / tours / free
+  // Price notes (2026 estimates; verify with operator before release):
+  //   Upper Rock combined ticket ~£19 adult;
+  //   Dolphin watching ~£30 adult (~2 h);
+  //   Europa Point & Med Steps: free entry.
   const ATTRACTIONS = [
     {
       id: 'upper-rock',
@@ -14,19 +16,59 @@
       emoji: '🦍',
       price: 19,
       kind: 'ticket',
-      blurb: 'Combined ticket to six iconic sites on the Rock: St Michael\'s Cave (a vast limestone grotto used for concerts), Apes\' Den (home of Europe\'s only wild Barbary macaques), Great Siege Tunnels (carved 1779–83), Moorish Castle Tower of Homage (c. 1333), the Skywalk glass platform at 340 m, and Windsor Suspension Bridge over a 50 m gorge. Walk it independently or join a taxi tour via the Gibraltar Taxi Association.',
-      sub: 'St Michael\'s Cave · Apes\' Den · Great Siege Tunnels · Moorish Castle · Skywalk · Windsor Bridge',
-      note: 'Rock tours are run by the Gibraltar Taxi Association — book directly with your driver at Casemates or Cathedral Square ranks.',
+      area: 'Upper Rock',
+      category: 'nature',
+      blurb: 'Six iconic sites on the Rock in one combined ticket: St Michael’s Cave (a vast limestone grotto used for concerts), Apes’ Den (home of Europe’s only wild Barbary macaques), Great Siege Tunnels (carved 1779–83), Moorish Castle Tower of Homage (c. 1333), the Skywalk glass platform at 340 m, and Windsor Suspension Bridge spanning a 50 m gorge. Rock tours are run by the Gibraltar Taxi Association — book at Casemates or Cathedral Square ranks.',
+      sub: 'St Michael’s Cave · Apes’ Den · Great Siege Tunnels · Skywalk · Windsor Bridge',
+      note: 'Tours arranged directly with Gibraltar Taxi Association drivers at Casemates or Cathedral Square taxi ranks.',
     },
     {
       id: 'dolphin-watching',
-      name: 'Dolphin Watching in the Bay',
+      name: 'Dolphin Watching',
       emoji: '🐬',
       price: 30,
       kind: 'ticket',
-      blurb: 'Boat safari into the Bay of Gibraltar to spot common, bottlenose and striped dolphins. The bay is one of the best dolphin-watching sites in Europe — these waters feed and shelter three resident species year-round.',
-      sub: 'Bay of Gibraltar · ~2 hours · Adult ~£30',
+      area: 'Bay of Gibraltar',
+      category: 'nature',
+      blurb: 'Boat safari into the Bay of Gibraltar to spot common, bottlenose and striped dolphins — three resident species that feed here year-round. One of the best dolphin-watching sites in Europe, right on Gibraltar’s doorstep. Departs from Ocean Village marina; approximately two hours.',
+      sub: 'Bay of Gibraltar · Ocean Village · ~2 hours',
       note: null,
+    },
+    {
+      id: 'med-steps',
+      name: 'Mediterranean Steps Hike',
+      emoji: '🥾',
+      price: 0,
+      kind: 'rsvp',
+      area: 'Upper Rock (east face)',
+      category: 'nature',
+      blurb: 'A strenuous, spectacular trail climbing the eastern face of the Rock from Jews’ Gate to the Upper Rock ridge. Rare flora, Barbary macaques, kestrels and panoramic views across three countries and two continents. A local guide brings the geology, history and wildlife to life. Free entry.',
+      sub: 'Eastern face · ~2 h · Guided hike · Free',
+      note: null,
+    },
+    {
+      id: 'st-michaels-cave',
+      name: "St Michael’s Cave",
+      emoji: '🕌',
+      price: 0,
+      kind: 'rsvp',
+      area: 'Upper Rock',
+      category: 'caves',
+      blurb: 'A breathtaking natural limestone grotto deep inside the Rock, with cathedral-scale stalactite and stalagmite formations. The main chamber is used as a concert and event venue. Included in the Upper Rock combined ticket; accessible on foot or by taxi tour.',
+      sub: 'Upper Rock Nature Reserve · Included in combined ticket',
+      note: 'Covered by the Upper Rock combined ticket (book via “Upper Rock Nature Reserve” above).',
+    },
+    {
+      id: 'skywalk',
+      name: 'Skywalk & Windsor Bridge',
+      emoji: '🌉',
+      price: 0,
+      kind: 'rsvp',
+      area: 'Upper Rock, 340 m',
+      category: 'views',
+      blurb: 'The Skywalk is a cantilevered glass viewing platform at 340 m — higher than the Shard — with 360° views over the Strait of Gibraltar, Morocco, Spain and the Atlantic. Minutes away, Windsor Suspension Bridge spans a 50 m gorge in the Upper Rock. Both are included in the combined Nature Reserve ticket.',
+      sub: 'Upper Rock · 340 m elevation · Views to Africa & Spain',
+      note: 'Covered by the Upper Rock combined ticket.',
     },
     {
       id: 'europa-point',
@@ -34,19 +76,23 @@
       emoji: '🏛️',
       price: 0,
       kind: 'rsvp',
-      blurb: 'The southernmost tip of the Rock, where the Atlantic meets the Mediterranean. On clear days you can see Morocco across the Strait — Africa just 14 km away. Ibrahim-al-Ibrahim Mosque stands nearby; the lighthouse has guided ships since 1841. Reachable by Bus Route 3 from the Air Terminal.',
+      area: 'Europa Point',
+      category: 'views',
+      blurb: 'The southernmost tip of the Rock, where the Atlantic meets the Mediterranean. On a clear day Morocco is just 14 km across the Strait — Africa visible to the naked eye. The lighthouse has guided ships since 1841; Ibrahim-al-Ibrahim Mosque stands nearby. Reach it by Bus Route 3 from the Air Terminal.',
       sub: 'Southernmost point of Gibraltar · Free entry · Views to Africa',
       note: null,
     },
     {
-      id: 'med-steps',
-      name: 'Mediterranean Steps Guided Hike',
-      emoji: '🥾',
-      price: 0,
-      kind: 'rsvp',
-      blurb: 'A strenuous but spectacular trail climbing the eastern face of the Rock from Jews\' Gate to the Upper Rock ridge. Rare flora, Barbary macaques, kestrels and panoramic views across three countries and two continents. Join a guided hike — a local guide brings the geology, history and wildlife to life.',
-      sub: 'Eastern face of the Rock · ~2 h · Guided hike · Free',
-      note: null,
+      id: 'gta-rock-tour',
+      name: 'Gibraltar Taxi Association Rock Tour',
+      emoji: '🚖',
+      price: 22,
+      kind: 'ticket',
+      area: 'Upper Rock & Europa Point',
+      category: 'tours',
+      blurb: 'The classic way to see the Rock — a guided taxi tour with a licensed Gibraltar Taxi Association driver. Shared minibus tours run ~£22–25 per person (Nature Reserve ticket included). Private tours from ~£360 per vehicle (up to 6 people). Agree the price with your driver at Casemates Square or Cathedral Square ranks.',
+      sub: 'Casemates Square · Cathedral Square · Shared ~£22–25 pp',
+      note: 'Tours include Nature Reserve entry. Private: ~£360/vehicle. VIP unlimited: ~£200/hour (2-h min).',
     },
   ];
 
@@ -55,9 +101,20 @@
     id: 'cable-car',
     name: 'Gibraltar Cable Car',
     emoji: '🚡',
-    blurb: 'The cable car to the Top Station (412 m, 6 minutes) is temporarily closed for a full refurbishment. It is expected to reopen in 2027. In the meantime, reach the Upper Rock by taxi tour (Gibraltar Taxi Association) or on foot via the Mediterranean Steps.',
+    area: 'Upper Rock, 412 m',
+    blurb: 'The cable car to the Top Station (412 m, 6 minutes) is closed for a full refurbishment and is expected to reopen in 2027. While it is closed, reach the Upper Rock by Gibraltar Taxi Association tour or on foot via the Mediterranean Steps. The Skywalk, St Michael’s Cave and Apes’ Den remain open via the combined Nature Reserve ticket.',
     reopens: '2027',
   };
+
+  // ---- category filter definitions ----
+  const CATEGORIES = [
+    { label: 'All',    value: 'all' },
+    { label: 'Nature', value: 'nature' },
+    { label: 'Caves',  value: 'caves' },
+    { label: 'Views',  value: 'views' },
+    { label: 'Tours',  value: 'tours' },
+    { label: 'Free',   value: 'free' },
+  ];
 
   // ---- state helpers ----
   function tickets() { return (RW.S.tickets = RW.S.tickets || []); }
@@ -65,86 +122,166 @@
   function holding(attractionId) {
     return myExploreTickets().find(function (t) { return t.id === attractionId; });
   }
+  function getFilter() { return RW.S._exploreFilter || 'all'; }
+
+  // ---- render helpers ----
+  function matchesFilter(a, filter) {
+    if (filter === 'all') return true;
+    if (filter === 'free') return a.price === 0;
+    return a.category === filter;
+  }
+
+  function attractionCard(a) {
+    var held = holding(a.id);
+    var isFree = a.price === 0;
+    var priceLabel = isFree ? 'Free' : money(a.price);
+
+    var statusHtml = '';
+    var actionHtml = '';
+
+    if (held) {
+      statusHtml =
+        '<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">' +
+        '<span class="pill-status ok">Booked ✓</span>' +
+        '<span class="num" style="font-size:13px;color:var(--ash)">Ref ' + esc(held.ref) + '</span>' +
+        '</div>';
+    } else if (isFree) {
+      actionHtml =
+        '<button class="btn ghost sm" style="margin-top:10px;width:100%"' +
+        ' data-act="exploreRsvp" data-id="' + esc(a.id) + '">' +
+        'Save to my list · Free' +
+        '</button>';
+    } else {
+      actionHtml =
+        '<button class="btn sm" style="margin-top:10px;width:100%"' +
+        ' data-act="exploreBook" data-id="' + esc(a.id) + '">' +
+        'Book · <span class="num">' + esc(priceLabel) + '</span>' +
+        '</button>';
+    }
+
+    var noteHtml = a.note
+      ? '<div class="muted tiny" style="margin-top:6px;font-style:italic">' + esc(a.note) + '</div>'
+      : '';
+
+    var areaHtml = a.area
+      ? '<span style="font-size:11px;color:var(--ash);font-weight:600;letter-spacing:.3px;text-transform:uppercase">' + esc(a.area) + '</span>'
+      : '';
+
+    var trailHtml = isFree
+      ? '<span class="pill-status ok" style="font-size:11px;padding:3px 8px">Free</span>'
+      : '<span class="num" style="font-weight:700;font-size:15px">£' + esc(String(a.price)) + '</span>';
+
+    return (
+      '<div class="card">' +
+      '<div class="row" style="border:0;padding:0;align-items:flex-start">' +
+      '<div class="lead" style="font-size:26px;padding-top:2px">' + a.emoji + '</div>' +
+      '<div class="body">' +
+      '<div class="name" style="font-size:15px;font-weight:700">' + esc(a.name) + '</div>' +
+      areaHtml +
+      '<div class="sub" style="margin-top:3px">' + esc(a.sub) + '</div>' +
+      '</div>' +
+      '<div class="trail" style="padding-top:2px">' + trailHtml + '</div>' +
+      '</div>' +
+      '<div class="muted tiny" style="margin-top:8px;line-height:1.55">' + esc(a.blurb) + '</div>' +
+      noteHtml +
+      (statusHtml || actionHtml) +
+      '</div>'
+    );
+  }
 
   // ---- render ----
   function render() {
     var mine = myExploreTickets();
+    var filter = getFilter();
+
+    // ---- hero ----
+    var heroHtml = RW.ui.hero({
+      emoji: '🧭',
+      title: 'Explore Gibraltar',
+      sub: 'The Rock, its caves, viewpoints & wildlife',
+      accent: '#1a4d7c',
+      chips: ['Upper Rock', 'Europa Point', 'Bay of Gibraltar', 'Mediterranean Steps'],
+    });
+
+    // ---- category filter chips ----
+    var filterChips = RW.ui.chips(CATEGORIES, filter, 'exploreFilter', true);
 
     // ---- attraction cards ----
-    var attractionCards = ATTRACTIONS.map(function (a) {
-      var held = holding(a.id);
-      var isFree = a.price === 0;
-      var priceLabel = isFree ? 'Free' : money(a.price);
-      var statusHtml = '';
-      var actionHtml = '';
-
-      if (held) {
-        statusHtml = '<div class="pill-status ok" style="margin-top:10px">Booked ✓ &nbsp;·&nbsp; Ref: ' + esc(held.ref) + '</div>';
-      } else if (isFree) {
-        actionHtml = '<button class="btn ghost sm" style="margin-top:10px;width:100%" data-act="exploreRsvp" data-id="' + esc(a.id) + '">Save to my list · Free</button>';
-      } else {
-        actionHtml = '<button class="btn sm" style="margin-top:10px;width:100%" data-act="exploreBook" data-id="' + esc(a.id) + '">Book · ' + priceLabel + '</button>';
-      }
-
-      var noteHtml = a.note ? '<div class="muted tiny" style="margin-top:6px;font-style:italic">' + esc(a.note) + '</div>' : '';
-
-      return '<div class="card">' +
-        '<div class="row" style="border:0;padding:0">' +
-        '<div class="lead" style="font-size:26px">' + a.emoji + '</div>' +
-        '<div class="body">' +
-        '<div class="name" style="font-size:15px">' + esc(a.name) + '</div>' +
-        '<div class="sub">' + esc(a.sub) + '</div>' +
-        '</div>' +
-        '<div class="trail">' + priceLabel + '</div>' +
-        '</div>' +
-        '<div class="muted tiny" style="margin-top:8px">' + esc(a.blurb) + '</div>' +
-        noteHtml +
-        (statusHtml || actionHtml) +
-        '</div>';
-    }).join('');
+    var visible = ATTRACTIONS.filter(function (a) { return matchesFilter(a, filter); });
+    var attractionCards = visible.length
+      ? visible.map(attractionCard).join('')
+      : RW.ui.empty('🔭', 'No attractions in this category.');
 
     // ---- cable car closed card ----
-    var cableCarCard = '<div class="card" style="opacity:0.85">' +
-      '<div class="row" style="border:0;padding:0">' +
-      '<div class="lead" style="font-size:26px">' + CABLE_CAR.emoji + '</div>' +
-      '<div class="body">' +
-      '<div class="name" style="font-size:15px">' + esc(CABLE_CAR.name) + '</div>' +
-      '<div class="sub"><span class="pill-status warn" style="font-size:11px">Closed — reopening ' + esc(CABLE_CAR.reopens) + '</span></div>' +
-      '</div>' +
-      '</div>' +
-      '<div class="muted tiny" style="margin-top:8px">' + esc(CABLE_CAR.blurb) + '</div>' +
-      '<button class="btn ghost sm" style="margin-top:10px;width:100%" data-act="exploreNotify" data-id="' + esc(CABLE_CAR.id) + '">Notify me when it reopens</button>' +
-      '</div>';
+    var showCableCar = filter === 'all' || filter === 'views';
+    var cableCarCard = '';
+    if (showCableCar) {
+      var notified = (RW.S._cableCarNotify === true);
+      var notifyBtn = notified
+        ? '<span class="pill-status info" style="margin-top:10px;display:inline-flex">Notify set ✓</span>'
+        : '<button class="btn ghost sm" style="margin-top:10px;width:100%"' +
+          ' data-act="exploreNotify" data-id="' + esc(CABLE_CAR.id) + '">' +
+          '🔔 Notify me when it reopens' +
+          '</button>';
 
-    // ---- my tickets section ----
+      cableCarCard =
+        RW.ui.sectionTitle('Cable Car') +
+        '<div class="card" style="opacity:0.88">' +
+        '<div class="row" style="border:0;padding:0;align-items:flex-start">' +
+        '<div class="lead" style="font-size:26px;padding-top:2px">' + CABLE_CAR.emoji + '</div>' +
+        '<div class="body">' +
+        '<div class="name" style="font-size:15px;font-weight:700">' + esc(CABLE_CAR.name) + '</div>' +
+        '<span style="font-size:11px;color:var(--ash);font-weight:600;letter-spacing:.3px;text-transform:uppercase">' + esc(CABLE_CAR.area) + '</span>' +
+        '</div>' +
+        '<div class="trail" style="padding-top:2px">' +
+        '<span class="pill-status warn" style="font-size:11px;padding:3px 8px">Closed</span>' +
+        '</div>' +
+        '</div>' +
+        '<div class="muted tiny" style="margin-top:8px;line-height:1.55">' + esc(CABLE_CAR.blurb) + '</div>' +
+        '<div class="muted tiny" style="margin-top:4px">Expected to reopen: <strong>' + esc(CABLE_CAR.reopens) + '</strong></div>' +
+        notifyBtn +
+        '</div>';
+    }
+
+    // ---- your tickets section ----
     var ticketsSection = '';
     if (mine.length) {
       var ticketRows = mine.map(function (t) {
         var attraction = ATTRACTIONS.find(function (a) { return a.id === t.id; });
         var label = attraction ? attraction.name : t.name;
-        var emoji = attraction ? attraction.emoji : '🎟️';
+        var emoji = attraction ? attraction.emoji : '🎫';
         var priceStr = t.price > 0 ? money(t.price) : 'Free';
-        return '<div class="row">' +
+        return (
+          '<div class="row">' +
           '<div class="lead" style="font-size:22px">' + emoji + '</div>' +
           '<div class="body">' +
           '<div class="name">' + esc(label) + '</div>' +
-          '<div class="sub">Ref: ' + esc(t.ref) + ' &nbsp;·&nbsp; ' + fmtTime(t.t) + '</div>' +
+          '<div class="sub">Ref ' + esc(t.ref) + ' · ' + fmtTime(t.t) + '</div>' +
           '</div>' +
-          '<div class="trail pill-status ok" style="font-size:12px">' + priceStr + '</div>' +
-          '</div>';
+          '<div class="trail">' +
+          '<span class="pill-status ok" style="font-size:12px"><span class="num">' + esc(priceStr) + '</span></span>' +
+          '</div>' +
+          '</div>'
+        );
       }).join('');
 
-      ticketsSection = RW.ui.sectionTitle('Your tickets') +
+      ticketsSection =
+        RW.ui.sectionTitle('Your tickets') +
         '<div class="card" style="padding:0">' + ticketRows + '</div>';
+    } else if (filter === 'all') {
+      ticketsSection =
+        RW.ui.sectionTitle('Your tickets') +
+        RW.ui.empty('🎫', 'No tickets yet — book an experience below.');
     }
 
-    var body = ticketsSection +
+    var body =
+      filterChips +
+      ticketsSection +
       RW.ui.sectionTitle('Attractions & Experiences') +
       attractionCards +
-      RW.ui.sectionTitle('Cable Car') +
       cableCarCard;
 
-    return RW.ui.screen({ title: 'Explore', body: body });
+    return RW.ui.screen({ title: 'Explore', hero: heroHtml, body: body });
   }
 
   // ---- register activity provider ----
@@ -152,17 +289,18 @@
     return myExploreTickets().map(function (t) {
       var attraction = ATTRACTIONS.find(function (a) { return a.id === t.id; });
       var label = attraction ? attraction.name : t.name;
-      var emoji = attraction ? attraction.emoji : '🎟️';
+      var emoji = attraction ? attraction.emoji : '🎫';
       var priceStr = t.price > 0 ? money(t.price) : 'Free';
       return {
         t: t.t,
-        html: '<div class="card row" style="cursor:pointer" data-act="nav" data-route="#/explore">' +
+        html:
+          '<div class="card row" style="cursor:pointer" data-act="nav" data-route="#/explore">' +
           '<div class="lead" style="font-size:22px">' + emoji + '</div>' +
           '<div class="body">' +
           '<div class="name">' + esc(label) + '</div>' +
-          '<div class="sub">Ref: ' + esc(t.ref) + ' &nbsp;·&nbsp; ' + fmtTime(t.t) + '</div>' +
+          '<div class="sub">Ref ' + esc(t.ref) + ' · ' + fmtTime(t.t) + '</div>' +
           '</div>' +
-          '<div class="trail">' + priceStr + '</div>' +
+          '<div class="trail"><span class="num">' + esc(priceStr) + '</span></div>' +
           '</div>',
       };
     });
@@ -178,6 +316,12 @@
     order: 20,
     render: render,
     actions: {
+      exploreFilter: function (el) {
+        RW.S._exploreFilter = el.dataset.v || 'all';
+        RW.store.save();
+        RW.render();
+      },
+
       exploreBook: function (el) {
         var id = el.dataset.id;
         var attraction = ATTRACTIONS.find(function (a) { return a.id === id; });
@@ -198,9 +342,10 @@
           price: attraction.price,
         });
         RW.store.save();
-        RW.toast('Booked! Ref: ' + ticketRef);
+        RW.toast('Booked! Ref: ' + ticketRef);
         RW.render();
       },
+
       exploreRsvp: function (el) {
         var id = el.dataset.id;
         var attraction = ATTRACTIONS.find(function (a) { return a.id === id; });
@@ -219,8 +364,12 @@
         RW.toast('Saved to your list · ' + ticketRef);
         RW.render();
       },
-      exploreNotify: function (el) {
-        RW.toast('We\'ll let you know when the cable car reopens — ¡te llamo p\'atrá!');
+
+      exploreNotify: function () {
+        RW.S._cableCarNotify = true;
+        RW.store.save();
+        RW.toast('We’ll let you know when the cable car reopens — te llamo p’atrá!');
+        RW.render();
       },
     },
   });

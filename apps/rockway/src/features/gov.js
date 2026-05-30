@@ -44,7 +44,7 @@
       id: 'g-driving', dept: 'driving',
       name: 'Driving Licence Renewal',
       desc: 'Renew or replace your standard/learner licence',
-      emoji: '🪺',
+      emoji: '🪪',
       bookable: true,
       external: false,
     },
@@ -103,7 +103,7 @@
       id: 'g-passport', dept: 'id',
       name: 'Passport Application',
       desc: 'New or renewed Gibraltar passport',
-      emoji: '👀',
+      emoji: '🛂',
       bookable: true,
       external: false,
     },
@@ -213,7 +213,7 @@
     // Service list
     var serviceList = visible.length
       ? '<div class="card" style="padding:0 12px">' + visible.map(serviceRow).join('') + '</div>'
-      : RW.ui.empty('🗲️', 'No services in this category');
+      : RW.ui.empty('🏛️', 'No services in this category');
 
     // Appointments section
     var govAppts = RW.S.appointments.filter(function (a) { return a.kind === 'gov'; }).slice().reverse();

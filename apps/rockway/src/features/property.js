@@ -115,7 +115,7 @@
       id: 'p-qq-b1', type: 'buy', area: 'Queensway Quay', beds: 3, baths: 3,
       price: 1650000, agent: 'BFA', agentUrl: 'bfagib.com',
       title: '3-bed duplex, Queensway Quay',
-      blurb: 'Exceptional duplex with a double-height living room and private roof terrace looking over the marina. Three en-suite bathrooms, wine cellar and maid’s room.',
+      blurb: "Exceptional duplex with a double-height living room and private roof terrace looking over the marina. Three en-suite bathrooms, wine cellar and maid’s room.",
       features: ['Roof terrace', 'Duplex', 'Marina views', 'Wine cellar'],
       floor: 6,
     },

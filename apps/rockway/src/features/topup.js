@@ -71,7 +71,7 @@
   }
 
   function kindEmoji(kind) {
-    if (kind === 'esim')   return '🪺';
+    if (kind === 'esim')   return '📲';
     if (kind === 'bundle') return '📶';
     return '📱';
   }
@@ -186,7 +186,7 @@
     var esimCard =
       '<div class="card">' +
         '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">' +
-          '<div class="lead" style="background:#e8ecff;flex-shrink:0;width:50px;height:50px;border-radius:14px;display:grid;place-items:center;font-size:24px">🪺</div>' +
+          '<div class="lead" style="background:#e8ecff;flex-shrink:0;width:50px;height:50px;border-radius:14px;display:grid;place-items:center;font-size:24px">📲</div>' +
           '<div>' +
             '<div style="font-weight:800;font-size:15px">Rockway / ' + esc(provObj.label) + ' eSIM</div>' +
             '<div style="font-size:12px;color:var(--ash);margin-top:2px">Instant activation · ' + esc(activeProv) + ' network</div>' +
