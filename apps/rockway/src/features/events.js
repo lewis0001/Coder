@@ -1,7 +1,7 @@
-/* Rockway feature — What's On (events & ticketing for Gibraltar). */
+/* Rockway feature — What's On (events & free RSVP for Gibraltar). */
 (function (RW) {
   'use strict';
-  const { esc, money, fmtDate, ref } = RW.util;
+  const { esc, money, uid, fmtDate, ref } = RW.util;
 
   // ---- Authentic Gibraltar event calendar ----
   const EVENTS = [
@@ -14,7 +14,7 @@
       emoji: '🇬🇮',
       price: 0,
       cat: 'culture',
-      desc: 'The Rock turns red & white. Parades, children’s fancy-dress, live music and fireworks from the Detached Mole.',
+      desc: 'The Rock turns red & white. Parades, children\'s fancy-dress, live music and fireworks from the Detached Mole.',
       accent: '#d4112a',
     },
     {
@@ -26,7 +26,7 @@
       emoji: '🍽️',
       price: 0,
       cat: 'food',
-      desc: 'Gibraltar’s big open-air food and culture night. Calentita, panissa, rosto and live music under the stars.',
+      desc: 'Gibraltar\'s big open-air food and culture night. Calentita, panissa, rosto and live music under the stars.',
       accent: '#e08a00',
     },
     {
@@ -38,7 +38,7 @@
       emoji: '🎸',
       price: 55,
       cat: 'music',
-      desc: 'Headline rock and pop acts under the shadow of the Rock. The biggest paid gig of the year at Victoria Stadium.',
+      desc: 'Headline rock and pop acts under the shadow of the Rock. The biggest gig of the year at Victoria Stadium.',
       accent: '#1455c0',
     },
     {
@@ -115,14 +115,14 @@
     },
     {
       id: 'e10',
-      name: 'St. Michael’s Cave Concert',
+      name: "St. Michael's Cave Concert",
       date: '2026-10-03',
-      venue: "St. Michael’s Cave",
+      venue: "St. Michael's Cave",
       area: 'Upper Rock',
       emoji: '🩸',
       price: 30,
       cat: 'music',
-      desc: 'Classical music echoes through Gibraltar’s most dramatic natural amphitheatre — a 60-metre limestone grotto.',
+      desc: "Classical music echoes through Gibraltar's most dramatic natural amphitheatre — a 60-metre limestone grotto.",
       accent: '#5b3d8a',
     },
   ];
@@ -169,6 +169,19 @@
     return upcoming[0] || EVENTS[0];
   };
 
+  // Helper: find a reservation for an event (matched by eventId or name)
+  function findReservation(e) {
+    var reservations = RW.S.reservations || [];
+    return reservations.find(function (r) {
+      return r.kind === 'event' && (r.eventId === e.id || r.name === e.name);
+    });
+  }
+
+  // Helper: human-readable date label for reservation shape
+  function dateLabel(iso) {
+    return fmtDate(iso);
+  }
+
   // ---- Date-block helper: bold day + short month in event accent colour ----
   function dateBlock(iso, accent) {
     var d = new Date(iso + 'T00:00:00');
@@ -198,12 +211,12 @@
 
   // ---- Single event card ----
   function eventCard(e) {
-    var ticket = (RW.S.tickets || []).find(function (t) { return t.eventId === e.id; });
+    var reservation = findReservation(e);
 
+    // Display ticket price as informational text only — Rockway takes no money
     var priceHtml = e.price
-      ? '<span class="num" style="font-weight:800;font-size:13px;color:var(--brand)">' +
-        money(e.price) + '</span>'
-      : '<span style="color:var(--green);font-weight:800;font-size:13px">Free</span>';
+      ? '<span style="font-size:12px;color:var(--ash)">Tickets ' + esc(money(e.price)) + ' on the door</span>'
+      : '<span style="color:var(--green);font-weight:800;font-size:13px">Free entry</span>';
 
     var accentBar =
       '<div style="height:3px;border-radius:3px;background:' + e.accent +
@@ -221,20 +234,17 @@
       priceHtml + catBadge(e.cat) + '</div>';
 
     var actionHtml;
-    if (ticket) {
+    if (reservation) {
       actionHtml =
         '<div class="pill-status ok" style="margin-top:10px;width:100%;' +
         'justify-content:center;font-size:12.5px">' +
-        '✓ Booked · ref <span class="num" style="font-size:12px">' +
-        esc(ticket.ref) + '</span></div>';
+        'Reserved ✓ \xB7 ref <span class="num" style="font-size:12px">' +
+        esc(reservation.ref) + '</span></div>';
     } else {
-      var btnClass = e.price ? 'btn sm' : 'btn sm ghost';
-      var btnLabel = e.price
-        ? 'Get ticket · ' + money(e.price)
-        : 'RSVP · Free';
+      var btnLabel = e.price ? 'Reserve — RSVP free' : 'RSVP — free';
       actionHtml =
-        '<button class="' + btnClass + '" style="margin-top:10px;width:100%" ' +
-        'data-act="ticket" data-id="' + esc(e.id) + '">' + btnLabel + '</button>';
+        '<button class="btn sm ghost" style="margin-top:10px;width:100%" ' +
+        'data-act="evtReserve" data-id="' + esc(e.id) + '">' + btnLabel + '</button>';
     }
 
     return (
@@ -267,7 +277,6 @@
     function stat(n, lbl) {
       return '<div class="stat"><div class="n num">' + n + '</div><div class="l">' + esc(lbl) + '</div></div>';
     }
-    // Three-up: use a flex row so the third fits
     return (
       '<div style="display:flex;gap:8px;margin-bottom:14px">' +
       stat(upcoming, 'Upcoming') +
@@ -277,28 +286,28 @@
     );
   }
 
-  // ---- "Your tickets" section ----
-  function yourTicketsSection() {
-    var tickets = RW.S.tickets || [];
-    if (!tickets.length) return '';
+  // ---- "Your reservations" section ----
+  function yourReservationsSection() {
+    var reservations = (RW.S.reservations || []).filter(function (r) { return r.kind === 'event'; });
+    if (!reservations.length) return '';
 
-    var rows = tickets.map(function (t) {
-      var e = EVENTS.find(function (x) { return x.id === t.eventId; });
+    var rows = reservations.map(function (r) {
+      var e = EVENTS.find(function (x) { return x.id === r.eventId || x.name === r.name; });
       if (!e) return '';
       var isPast = e.date < new Date().toISOString().slice(0, 10);
       var statusClass = isPast ? 'pill-status neutral' : 'pill-status ok';
-      var statusText  = isPast ? 'Used' : '✓ Confirmed';
+      var statusText  = isPast ? 'Past' : '✓ Reserved';
       return (
         '<div class="row" style="border-bottom:1px solid var(--mist);padding:11px 0">' +
         '<div class="lead" style="font-size:22px;background:var(--green-soft);border-radius:12px">' +
         e.emoji + '</div>' +
         '<div class="body">' +
         '<div class="name" style="font-size:14px;font-weight:700">' + esc(e.name) + '</div>' +
-        '<div class="sub">' + fmtDate(e.date) + ' · ' + esc(e.venue) + '</div>' +
+        '<div class="sub">' + fmtDate(e.date) + ' \xB7 ' + esc(e.venue) + '</div>' +
         '</div>' +
         '<div class="trail" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">' +
         '<div class="' + statusClass + '" style="font-size:11px">' + statusText + '</div>' +
-        '<div class="num" style="font-size:11px;color:var(--ash)">' + esc(t.ref) + '</div>' +
+        '<div class="num" style="font-size:11px;color:var(--ash)">' + esc(r.ref) + '</div>' +
         '</div>' +
         '</div>'
       );
@@ -306,9 +315,9 @@
 
     if (!rows) return '';
 
-    var total = tickets.length;
+    var total = reservations.length;
     return (
-      RW.ui.sectionTitle('🎫 Your tickets (' + total + ')') +
+      RW.ui.sectionTitle('🎟️ Your reservations (' + total + ')') +
       '<div class="card" style="padding:0 14px">' + rows + '</div>'
     );
   }
@@ -328,7 +337,7 @@
 
     var heroHtml = RW.ui.hero({
       emoji: '🎉',
-      title: "What’s On in Gibraltar",
+      title: "What's On in Gibraltar",
       sub: 'Culture, music, food & more on the Rock',
       accent: '#d4112a',
       chips: ['National Day 10 Sep', 'Casemates', 'Victoria Stadium', 'Europa Point'],
@@ -349,24 +358,24 @@
       cards = visible.map(eventCard).join('');
     }
 
-    var ticketsHtml = yourTicketsSection();
-    var upcomingTitle = ticketsHtml ? RW.ui.sectionTitle('Upcoming events') : '';
+    var reservationsHtml = yourReservationsSection();
+    var upcomingTitle = reservationsHtml ? RW.ui.sectionTitle('Upcoming events') : '';
 
     var body =
       filterCats +
       filterMons +
       (visible.length ? statsRow(visible) : '') +
-      ticketsHtml +
+      reservationsHtml +
       upcomingTitle +
       cards;
 
-    return RW.ui.screen({ title: "What’s On", hero: heroHtml, body: body });
+    return RW.ui.screen({ title: "What's On", hero: heroHtml, body: body });
   }
 
   // ---- Register ----
   RW.register({
     id: 'events',
-    title: "What’s On",
+    title: "What's On",
     emoji: '🎉',
     tileBg: '#fff4d6',
     section: 'explore',
@@ -380,15 +389,14 @@
       var d = new Date(e.date + 'T00:00:00');
       var dayNum = d.getDate();
       var mon = d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase();
-      var ticket = (RW.S.tickets || []).find(function (t) { return t.eventId === e.id; });
+      var reservation = findReservation(e);
 
       var priceTag = e.price
-        ? '<span class="num" style="font-size:13px;font-weight:800;color:var(--brand)">' +
-          money(e.price) + '</span>'
-        : '<span style="font-size:12px;font-weight:800;color:var(--green)">Free</span>';
+        ? '<span style="font-size:11px;color:var(--ash)">Tickets ' + esc(money(e.price)) + ' OTD</span>'
+        : '<span style="font-size:12px;font-weight:800;color:var(--green)">Free entry</span>';
 
-      var statusBadge = ticket
-        ? '<div class="pill-status ok" style="font-size:10.5px;margin-top:4px">✓ Booked</div>'
+      var statusBadge = reservation
+        ? '<div class="pill-status ok" style="font-size:10.5px;margin-top:4px">✓ Reserved</div>'
         : '';
 
       return (
@@ -419,19 +427,22 @@
     },
 
     actions: {
-      ticket: function (el) {
+      evtReserve: function (el) {
         var e = EVENTS.find(function (x) { return x.id === el.dataset.id; });
         if (!e) return;
-        RW.S.tickets = RW.S.tickets || [];
-        if (RW.S.tickets.find(function (t) { return t.eventId === e.id; })) return;
-        if (e.price && !RW.store.debit(e.price, e.name + ' ticket')) {
-          RW.toast('Top up your wallet first');
-          RW.go('#/wallet');
-          return;
-        }
-        RW.S.tickets.push({ eventId: e.id, ref: ref('EV'), t: Date.now() });
+        RW.S.reservations = RW.S.reservations || [];
+        if (findReservation(e)) return; // already reserved
+        RW.S.reservations.push({
+          id: uid(),
+          ref: ref('EV'),
+          t: Date.now(),
+          kind: 'event',
+          name: e.name,
+          when: dateLabel(e.date),
+          eventId: e.id,
+        });
         RW.store.save();
-        RW.toast(e.price ? 'Ticket purchased 🎫' : "You’re on the list 🎉");
+        RW.toast('Reserved — see you there! 🎉');
         RW.render();
       },
 

@@ -142,6 +142,11 @@
   const SOURCES = ['All', 'GBC', 'Chronicle', 'Panorama', 'YGTV'];
   const CATEGORIES = ['All', 'Frontier', 'Health', 'Sport', 'Finance', 'Weather', 'National Day', 'Port & Shipping'];
 
+  // ---- live feed state (populated by /api/news proxy) ----
+
+  var liveItems  = null;  // array of {title, link, date} from Chronicle RSS, or null
+  var fetchFired = false; // guard: only one fetch per page load
+
   // ---- state helpers ----
 
   function getBookmarks() { return (RW.S.newsBookmarks = RW.S.newsBookmarks || []); }
@@ -180,6 +185,70 @@
   function sourceLabel(src) {
     if (src === 'Chronicle') return 'Gibraltar Chronicle';
     return src || '';
+  }
+
+  // Parse an RSS pubDate string (RFC 2822) into a relative label; falls back gracefully
+  function relTimeFromRFC(dateStr) {
+    if (!dateStr) return '';
+    try {
+      var ms = Date.parse(dateStr);
+      if (isNaN(ms)) return dateStr.substring(0, 16);
+      return relTime(ms);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  // Render a single live Chronicle item as a card
+  function renderLiveItem(item) {
+    var t = relTimeFromRFC(item.date);
+    var safeLink = (item.link || '').replace(/"/g, '%22');
+    return '<div class="card" style="margin-bottom:8px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
+        '<span style="font-size:11px;font-weight:800;color:#1455c0;letter-spacing:.02em">Gibraltar Chronicle</span>' +
+        (t ? '<span class="num" style="font-size:11px;color:var(--ash);margin-left:auto">' + esc(t) + '</span>' : '') +
+      '</div>' +
+      '<a href="' + safeLink + '" target="_blank" rel="noopener"' +
+        ' style="font-size:14.5px;font-weight:800;line-height:1.35;color:var(--ink);text-decoration:none;display:block;margin-bottom:4px">' +
+        esc(item.title) +
+      '</a>' +
+    '</div>';
+  }
+
+  // Render the "Live · Gibraltar Chronicle" section (only when liveItems is populated)
+  function renderLiveSection() {
+    if (!liveItems || !liveItems.length) return '';
+    try {
+      return '<div style="margin-bottom:4px">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+            '<span style="font-size:13px;font-weight:800;color:var(--ink)">Live</span>' +
+            '<span style="display:inline-flex;align-items:center;font-size:10px;font-weight:700;' +
+              'color:#fff;background:#1455c0;border-radius:999px;padding:1px 7px">CHRONICLE</span>' +
+            '<span style="font-size:11px;color:var(--ash);margin-left:auto">gibraltar-chronicle.gi</span>' +
+          '</div>' +
+          liveItems.map(renderLiveItem).join('') +
+        '</div>';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  // Kick off ONE background fetch of the Chronicle RSS proxy; re-renders on success
+  function maybeStartLiveFetch() {
+    if (fetchFired) return;
+    if (typeof fetch !== 'function') return;
+    fetchFired = true;
+    fetch('/api/news')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.ok && Array.isArray(data.items) && data.items.length) {
+          liveItems = data.items;
+          RW.render();
+        }
+      })
+      .catch(function () {
+        // Network or parse error — stay on seed data, no crash
+      });
   }
 
   // Source badge colours map (accent colour per outlet)
@@ -421,6 +490,12 @@
           '</p>'
         : '');
 
+    // Kick off live fetch (no-op if already fired or fetch unavailable)
+    maybeStartLiveFetch();
+
+    // Live Chronicle section (empty string when no live data yet)
+    var liveHtml = renderLiveSection();
+
     var body =
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">' +
         '<div style="font-size:13px;color:var(--ash)">Gibraltar news &amp; community</div>' +
@@ -428,6 +503,9 @@
       '</div>' +
       statsHtml +
       '<div class="card" style="margin-bottom:14px">' + filterBar + '</div>' +
+      (liveHtml
+        ? RW.ui.sectionTitle('Live · Gibraltar Chronicle') + liveHtml
+        : '') +
       RW.ui.sectionTitle('Latest') +
       feedHtml +
       noticeHtml;
