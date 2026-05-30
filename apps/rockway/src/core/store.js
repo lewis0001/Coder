@@ -41,6 +41,8 @@
       payRequests: [],             // P2P money requests
       bills: {},                   // billerId -> { paidAt, amount }
       savedListings: [],           // marketplace saved items
+      newsFilter: {},              // news source/category filter
+      newsNotices: [],             // community noticeboard posts
       newsBookmarks: [],           // saved news items
       txns: [
         { id: uid(), t: Date.now() - 86400000, label: 'Top-up · Visa ••42', amt: +50, kind: 'in' },
