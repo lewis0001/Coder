@@ -123,6 +123,17 @@ act('shopAdd', { key: 'shop:s-morrisons:p1' });
 if (RW.store.cartCount() <= beforeCount) fail('shopAdd did not add to basket');
 else ok('shopAdd works (cart ' + RW.store.cartCount() + ')');
 
+// top-level content feeds must not render empty on fresh state (catches
+// default-filter regressions like the news getFilter bug)
+console.log('\nFeed sanity (fresh state):');
+['news', 'jobs', 'marketplace', 'explore', 'events'].forEach((id) => {
+  location.hash = '#/' + id;
+  RW.render();
+  const html = (elements.app && elements.app.innerHTML) || '';
+  if (/No stories|No vacancies|No listings|match your filters/i.test(html)) fail(id + ' feed renders empty on fresh state');
+  else ok(id + ' feed has content');
+});
+
 /* ---------------- summary ---------------- */
 console.log('\n' + (failures ? '✗ ' + failures + ' failure(s)' : '✓ all checks passed') + '  ·  ' + features.length + ' features registered');
 process.exit(failures ? 1 : 0);

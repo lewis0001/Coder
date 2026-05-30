@@ -148,7 +148,12 @@
   function getNotices()   { return (RW.S.newsNotices   = RW.S.newsNotices   || []); }
   function allNotices()   { return INITIAL_NOTICES.concat(getNotices()); }
   function isBookmarked(id) { return getBookmarks().indexOf(id) !== -1; }
-  function getFilter() { return (RW.S.newsFilter = RW.S.newsFilter || { source: 'All', category: 'All' }); }
+  function getFilter() {
+    var f = RW.S.newsFilter = RW.S.newsFilter || {};
+    if (!f.source) f.source = 'All';
+    if (!f.category) f.category = 'All';
+    return f;
+  }
 
   function filteredArticles() {
     var f = getFilter();
@@ -542,9 +547,7 @@
     },
   });
 
-  // Live character counter for the notice textarea (runs after any render)
-  var _origRender = RW.render;
-  // Attach counter listener post-render via a small MutationObserver shim
+  // Live character counter for the notice textarea
   document.addEventListener('DOMContentLoaded', function () {
     var phone = document.querySelector('.phone') || document.body;
     phone.addEventListener('input', function (e) {
