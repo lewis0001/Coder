@@ -29,7 +29,9 @@
       savings: 0,                  // savings pot
       // ---- per-feature persisted collections (pre-added so feature modules
       //      never need to edit core; guard reads with `|| []` regardless) ----
-      parking: [],                 // parking sessions/permits
+      parking: [],                 // parking pay-and-display sessions
+      parkingPermits: [],          // residential parking permits
+      propertyTab: 'rent',         // property rent/buy toggle
       prescriptions: [],           // health repeat prescriptions
       jobApps: [],                 // job applications
       savedProperties: [],         // saved property listings

@@ -4,52 +4,40 @@ Status: ✅ done · 🔨 in progress · ⏳ queued · 🔬 needs research
 
 ## Foundation
 - [x] Plugin/registry architecture (core/*)
-- [x] Design system (styles.css)
-- [x] Persistence + wallet ledger (store.js)
-- [x] Headless smoke test (test/smoke.js) — keep green
+- [x] Design system (styles.css) + "Limestone & Key" + Rock hero
+- [x] Persistence + wallet ledger (store.js) + per-feature state slots
+- [x] Headless smoke test (test/smoke.js) — **green, 24+ features**
 - [x] Zero-dep server + file:// support
-- [x] Scaffold docs (ROCKWAY.md, AGENTS.md, this file)
-- [ ] 🔬 Gibraltar research dossier (docs/gibraltar-research.md)
-- [ ] 🔨 Distinctive, non-generic shell redesign ("living Rock" identity)
+- [x] Scaffold docs (ROCKWAY.md, AGENTS.md, this file, design-vision.md)
+- [x] 🔬 Gibraltar research dossier (docs/research/* + gibraltar-research.md)
+- [x] Distinctive, non-generic shell ("The Rock, now" living home + Rock SVG)
 
 ## Features
 ### Core surfaces
-- [x] Home · Activity · Account · Cart/Checkout/Order tracking
+- [x] Home (living Rock) · Activity (extensible feed) · Account · Cart/Checkout/Order tracking
 
 ### Daily life
-- [x] Eat (food delivery)
-- [x] Shop (groceries/pharmacy/convenience)
-- [x] Send (parcel courier)
-- [x] Frontier (live border queue) — killer feature
-- [x] Move (bus / cable car / ferry) — ⚠️ revise taxi to Gib Taxi Association reality
-- [ ] ⏳ Parking (pay-by-zone, permits, runway-crossing aware)
+- [x] Eat · Shop · Send · Frontier (live border) · Move (Gib-accurate transit) · Parking
 
 ### Money
-- [x] Wallet (balance, txns, top-up, QR)
-- [ ] ⏳ Pay (P2P send/request, split bills with contacts)
-- [ ] ⏳ Bills (Electricity Authority, AquaGib water, GibFibre, council)
-- [ ] ⏳ Top-up (mobile / eSIM / data)
-- [ ] ⏳ Rewards (Rockway points → redeem)
+- [x] Wallet · Pay (P2P/split) · Bills (AquaGib/Rates/Gibtelecom) · Top-up (mobile/eSIM) · Rewards (Keys)
 
 ### Services
-- [x] Gov.gi (appointments + services)
-- [ ] ⏳ Health (GHA / St Bernard's appts, prescriptions, pharmacy)
-- [ ] ⏳ Jobs (local board)
-- [ ] ⏳ Property (rentals & sales)
-- [ ] ⏳ Marketplace (local classifieds buy/sell — user can post)
+- [x] Gov.gi · Health (GHA/PCC) · Jobs · Property · Marketplace
 
 ### Explore & connect
-- [x] What's On (events & ticketing)
-- [ ] ⏳ Explore (Rock tours, cable car, St Michael's Cave, dolphin watching, attraction tickets)
-- [ ] ⏳ News (local headlines + community noticeboard)
-- [ ] ⏳ Chat (messaging; order/courier threads)
+- [x] What's On (events) · Explore (attractions/tours) · Chat (Llanito threads)
+- [ ] 🔨 News (local headlines + noticeboard) — agent finishing
 
-## Cross-cutting upgrades (future)
-- [ ] Dark "obsidian Rock" theme
-- [ ] Live territory signals on Home (runway crossing, ships in bay, Levanter)
-- [ ] Llanito copy pass across features
+## Cross-cutting upgrades (next)
+- [ ] "Everything" launcher sheet (search across features)
+- [ ] Dark "Night Rock" theme + time-of-day palette already in Rock SVG
+- [ ] Live territory signals on Home (runway crossing for pedestrians, ships)
+- [ ] Llanito copy pass across all features
 - [ ] PWA manifest + offline cache
+- [ ] Per-feature polish review pass (consistency, empty states)
 
 ## Notes for continuity
-- Manifest in `src/core/boot.js` already lists every feature file above.
-- After each feature: update this file + run `node test/smoke.js`.
+- Manifest in `src/core/boot.js` lists every feature file.
+- After each change: run `node test/smoke.js` (must stay green) + update this file.
+- New persisted state must be added to `defaults()` in `src/core/store.js`.
