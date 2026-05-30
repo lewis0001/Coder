@@ -517,7 +517,7 @@
 
     var body = infoCard + actionRow + blurbCard + servicesHtml + reviewsHtml;
 
-    return RW.ui.screen({ title: esc(biz.name), hero: heroEl, body: body });
+    return RW.ui.screen({ title: biz.name, hero: heroEl, body: body });
   }
 
   // Build the day/slot picker panel for a service

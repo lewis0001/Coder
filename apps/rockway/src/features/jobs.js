@@ -318,7 +318,7 @@
       appliedBanner +
       applyBtn;
 
-    return RW.ui.screen({ title: esc(j.title), hero: heroEl, body: body, plain: true });
+    return RW.ui.screen({ title: j.title, hero: heroEl, body: body, plain: true });
   }
 
   // ---- render dispatcher ----

@@ -333,7 +333,7 @@
     var t   = relTime(a.timeMs);
     var heroHtml = RW.ui.hero({
       emoji: sourceEmoji(a.source),
-      title: esc(a.headline),
+      title: a.headline,
       sub: sourceLabel(a.source) + ' · ' + t,
       accent: srcColour(a.source),
       chips: [a.category],
@@ -351,7 +351,7 @@
         '</button>' +
         '<button class="btn ghost" data-act="newsShare" data-id="' + esc(a.id) + '">🔗 Share</button>' +
       '</div>';
-    return RW.ui.screen({ title: esc(sourceLabel(a.source)), hero: heroHtml, body: body });
+    return RW.ui.screen({ title: sourceLabel(a.source), hero: heroHtml, body: body });
   }
 
   function sourceEmoji(src) {
