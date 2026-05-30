@@ -83,6 +83,8 @@ console.log('\nRendering routes:');
 const features = RW.allFeatures();
 const routes = ['#/', '#/activity', '#/account', '#/discover', '#/business'];
 features.forEach((f) => { if (f.showTile) routes.push('#/' + f.id); });
+// a Discover business-detail (the booking screen)
+if (RW.api && RW.api.businesses && RW.api.businesses()[0]) routes.push('#/discover/' + RW.api.businesses()[0].id);
 
 routes.forEach((r) => {
   location.hash = r;
