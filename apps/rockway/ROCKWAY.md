@@ -78,12 +78,17 @@ shared-file edit needed.
 - After mutating state, call `RW.render()` to refresh.
 
 ## Status snapshot
-See `TODO.md` for the authoritative checklist. As of the foundation commit:
-- ✅ Core plugin architecture + design system + smoke test (green).
-- ✅ Built: home, eat, shop, send (parcel), frontier, move, wallet, gov, events,
-  activity, account, cart/checkout/tracking.
-- ⏳ Pending: parking, pay, bills, topup, rewards, health, jobs, property,
-  marketplace, explore, news, chat + distinctive shell redesign.
+See `TODO.md` for the authoritative checklist.
+- ✅ Core plugin architecture + "Limestone & Key" design system + live Rock
+  hero + headless smoke test (green across **25 features**).
+- ✅ Distinctive non-generic shell: "The Rock, now" living home (state-aware SVG).
+- ✅ All 25 features built & integrated (each in an isolated module):
+  home · activity · account · cart/checkout/tracking · eat · shop · send ·
+  frontier · move · parking · wallet · pay · bills · topup · rewards · gov ·
+  health · jobs · property · marketplace · events · explore · news · chat.
+- ✅ Verified visually via headless Chromium screenshots.
+- ⏳ Next (cross-cutting polish): "Everything" launcher w/ search, Night Rock
+  dark theme, more live home signals, Llanito copy pass, PWA manifest.
 
 ## Working agreement for agents
 - One agent ⇒ its own feature file(s). **Never** edit core, `index.html`,
