@@ -91,154 +91,202 @@
   }
 
   function isPaid(id) {
-    const s = billerState(id);
+    var s = billerState(id);
     return s && s.paidAt ? true : false;
   }
 
   function hasDirectDebit(id) {
-    const s = billerState(id);
+    var s = billerState(id);
     return s && s.directDebit ? true : false;
   }
 
   function isHidden(id) {
-    const s = billerState(id);
+    var s = billerState(id);
     return s && s.hidden ? true : false;
   }
 
-  function billerRow(b) {
-    const paid = isPaid(b.id);
-    const dd = hasDirectDebit(b.id);
-    const hidden = isHidden(b.id);
+  // Format a timestamp as a short date (e.g. "29 May")
+  function shortDate(ts) {
+    return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
 
-    // Build breakdown lines
-    const breakdownHtml = b.breakdown.map(function (item) {
-      return '<div class="kv"><span>' + esc(item.label) + '</span><span>' + esc(money(item.amount)) + '</span></div>';
+  function billerCard(b) {
+    var paid = isPaid(b.id);
+    var dd = hasDirectDebit(b.id);
+    var state = billerState(b.id);
+
+    // Breakdown lines — nested elegantly
+    var breakdownHtml = b.breakdown.map(function (item) {
+      return '<div class="kv" style="padding:5px 0;font-size:13px">' +
+        '<span style="color:var(--ash)">' + esc(item.label) + '</span>' +
+        '<span class="num">' + esc(money(item.amount)) + '</span>' +
+      '</div>';
     }).join('');
 
     // Status pill
-    const statusPill = paid
-      ? '<span class="pill-status ok">Paid ' + esc(fmtTime(billerState(b.id).paidAt)) + '</span>'
-      : '<span class="pill-status warn">Due</span>';
+    var statusPill = paid
+      ? '<span class="pill-status ok">✓ Paid ' + esc(shortDate(state.paidAt)) + '</span>'
+      : (dd
+        ? '<span class="pill-status info">↻ Direct Debit</span>'
+        : '<span class="pill-status warn">Due</span>');
 
-    // Pay button (disabled if already paid)
-    const payBtn = paid
-      ? '<button class="btn sm ghost" disabled style="opacity:0.45;cursor:not-allowed">Paid</button>'
-      : '<button class="btn sm" data-act="billsPay" data-id="' + esc(b.id) + '" data-amount="' + b.amount + '" data-name="' + esc(b.name) + '">Pay ' + esc(money(b.amount)) + '</button>';
+    // Pay button
+    var payBtn = paid
+      ? '<button class="btn sm ghost" disabled style="opacity:0.4;cursor:not-allowed;pointer-events:none">✓ Paid</button>'
+      : '<button class="btn sm sea" data-act="billsPay" data-id="' + esc(b.id) + '" data-amount="' + b.amount + '" data-name="' + esc(b.name) + '">Pay <span class="num">' + esc(money(b.amount)) + '</span></button>';
 
     // Direct Debit toggle
-    const ddBtn = dd
-      ? '<button class="btn sm ghost" data-act="billsDirectDebitOff" data-id="' + esc(b.id) + '" data-name="' + esc(b.name) + '" style="color:var(--green)">✓ Direct Debit</button>'
-      : '<button class="btn sm ghost" data-act="billsDirectDebitOn" data-id="' + esc(b.id) + '" data-name="' + esc(b.name) + '">Set up Direct Debit</button>';
+    var ddBtn = dd
+      ? '<button class="btn sm ghost" data-act="billsDirectDebitOff" data-id="' + esc(b.id) + '" data-name="' + esc(b.name) + '" style="color:var(--sea)">✓ DD on</button>'
+      : '<button class="btn sm ghost" data-act="billsDirectDebitOn" data-id="' + esc(b.id) + '" data-name="' + esc(b.name) + '">Set up DD</button>';
 
-    // Optional biller hide/show toggle label
-    const optionalToggle = b.optional
-      ? '<button class="btn sm ghost" data-act="billsToggleOptional" data-id="' + esc(b.id) + '" data-name="' + esc(b.name) + '" style="font-size:11px;padding:4px 8px">' + (hidden ? 'Show' : 'Hide') + '</button>'
+    // Optional biller hide/show
+    var optionalBtn = b.optional
+      ? '<button class="btn sm ghost" data-act="billsToggleOptional" data-id="' + esc(b.id) + '" data-name="' + esc(b.name) + '" style="font-size:11px">Hide</button>'
       : '';
 
-    if (hidden) {
-      return '<div class="row" style="opacity:0.5">' +
-        '<div class="lead" style="font-size:22px">' + b.emoji + '</div>' +
-        '<div class="body"><div class="name">' + esc(b.name) + '</div><div class="sub muted">Hidden (optional biller)</div></div>' +
-        '<div class="trail">' + optionalToggle + '</div>' +
-        '</div>';
-    }
+    // Card accent: paid cards are visually quieter
+    var cardStyle = paid
+      ? 'style="margin-bottom:12px;opacity:0.75"'
+      : 'style="margin-bottom:12px"';
 
-    return '<div class="card" style="margin-bottom:12px">' +
-      // Header row: emoji, name, status pill
-      '<div class="row" style="padding-bottom:0">' +
-        '<div class="lead" style="font-size:22px">' + b.emoji + '</div>' +
-        '<div class="body">' +
-          '<div class="name">' + esc(b.name) + '</div>' +
-          '<div class="sub">' + esc(b.sub) + '</div>' +
+    return '<div class="card" ' + cardStyle + '>' +
+      // Header: logo emoji + name/sub + status pill
+      '<div style="display:flex;align-items:center;gap:12px;padding-bottom:10px">' +
+        '<div style="width:46px;height:46px;border-radius:14px;background:var(--cloud);display:grid;place-items:center;font-size:24px;flex:0 0 auto">' +
+          b.emoji +
         '</div>' +
-        '<div class="trail">' + statusPill + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;font-size:14.5px">' + esc(b.name) + '</div>' +
+          '<div style="font-size:12px;color:var(--ash);margin-top:2px">' + esc(b.sub) + '</div>' +
+        '</div>' +
+        '<div>' + statusPill + '</div>' +
       '</div>' +
-      // Breakdown
-      '<div style="padding:8px 12px 4px;border-top:1px solid var(--rule,#f0f0f0);margin-top:6px">' +
+      // Breakdown section
+      '<div style="border-top:1px solid var(--mist);padding:8px 0 4px">' +
         breakdownHtml +
-        '<div class="kv total"><span>Total</span><span>' + esc(money(b.amount)) + '</span></div>' +
+        '<div class="kv total"><span>Total</span><span class="num">' + esc(money(b.amount)) + '</span></div>' +
       '</div>' +
-      // Note (authentic detail)
-      '<div style="padding:6px 12px 8px">' +
-        '<div class="sub muted" style="font-size:11px;line-height:1.4">' + esc(b.note) + '</div>' +
-        '<div class="sub muted" style="font-size:11px;margin-top:3px">Contact: ' + esc(b.contact) + '</div>' +
+      // Note (authentic Gibraltar detail)
+      '<div style="padding:8px 0 4px">' +
+        '<div style="font-size:11px;color:var(--ash);line-height:1.45">' + esc(b.note) + '</div>' +
+        '<div style="font-size:11px;color:var(--ash);margin-top:3px">Contact: ' + esc(b.contact) + '</div>' +
       '</div>' +
-      // Action buttons
-      '<div style="padding:8px 12px 12px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--rule,#f0f0f0)">' +
-        payBtn + ddBtn + (b.optional ? optionalToggle : '') +
+      // Action bar
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--mist);padding-top:10px;margin-top:4px">' +
+        payBtn + ddBtn + optionalBtn +
       '</div>' +
     '</div>';
+  }
+
+  function hiddenRow(b) {
+    return RW.ui.row({
+      lead: b.emoji,
+      leadBg: 'var(--cloud)',
+      name: b.name,
+      sub: 'Optional biller — hidden',
+      trail: '<button class="btn sm ghost" data-act="billsToggleOptional" data-id="' + esc(b.id) + '" data-name="' + esc(b.name) + '" style="font-size:11px">Show</button>',
+    });
   }
 
   function render() {
     RW.S.bills = RW.S.bills || {};
 
-    const activeBillers = BILLERS.filter(function (b) { return !b.optional || !isHidden(b.id); });
-    const hiddenBillers = BILLERS.filter(function (b) { return b.optional && isHidden(b.id); });
+    var visibleBillers = BILLERS.filter(function (b) { return !b.optional || !isHidden(b.id); });
+    var hiddenBillers  = BILLERS.filter(function (b) { return b.optional && isHidden(b.id); });
+    var paidCount      = visibleBillers.filter(function (b) { return isPaid(b.id); }).length;
+    var unpaidBillers  = visibleBillers.filter(function (b) { return !isPaid(b.id); });
+    var totalDue       = unpaidBillers.reduce(function (acc, b) { return acc + b.amount; }, 0);
+    var allPaid        = unpaidBillers.length === 0 && visibleBillers.length > 0;
 
-    const paidCount = BILLERS.filter(function (b) { return isPaid(b.id); }).length;
-    const totalDue = BILLERS.filter(function (b) { return !isPaid(b.id) && !isHidden(b.id); })
-      .reduce(function (acc, b) { return acc + b.amount; }, 0);
-
-    const summaryCard =
-      '<div class="card" style="margin-bottom:14px">' +
-        '<div class="kv"><span>Bills due</span><span class="' + (totalDue > 0 ? 'warn' : '') + '">' + esc(money(totalDue)) + '</span></div>' +
-        '<div class="kv"><span>Paid this cycle</span><span>' + paidCount + ' of ' + BILLERS.length + '</span></div>' +
-        '<div class="sub muted" style="padding:6px 12px 8px;font-size:11px">' +
-          'Gibraltar pound (GIP) · pegged 1:1 to GBP · all payments via Rockway Wallet' +
+    // ---- Summary stats strip ----
+    var ddCount = visibleBillers.filter(function (b) { return hasDirectDebit(b.id); }).length;
+    var statsHtml =
+      '<div class="grid2" style="margin-bottom:16px">' +
+        '<div class="stat">' +
+          '<div class="n num" style="color:' + (totalDue > 0 ? 'var(--brand)' : 'var(--green)') + '">' +
+            esc(money(totalDue)) +
+          '</div>' +
+          '<div class="l">Total due</div>' +
+        '</div>' +
+        '<div class="stat">' +
+          '<div class="n">' + paidCount + ' <span style="font-size:14px;font-weight:600;color:var(--ash)">/ ' + visibleBillers.length + '</span></div>' +
+          '<div class="l">Paid this cycle</div>' +
         '</div>' +
       '</div>';
 
-    const billersHtml = BILLERS.map(billerRow).join('');
-
-    const hiddenNotice = hiddenBillers.length
-      ? '<div class="muted tiny" style="text-align:center;margin-top:8px">' +
-          hiddenBillers.length + ' optional biller(s) hidden — show from the row above.' +
+    // ---- Direct Debit info strip (if any active) ----
+    var ddInfoHtml = ddCount > 0
+      ? '<div style="background:var(--sea-soft);color:var(--sea);border-radius:10px;padding:9px 13px;font-size:12px;font-weight:600;margin-bottom:14px">' +
+          '↻ ' + ddCount + ' Direct Debit' + (ddCount > 1 ? 's' : '') + ' active — payments collected automatically each month' +
         '</div>'
       : '';
 
-    const body =
-      summaryCard +
+    // ---- Bill cards or all-paid state ----
+    var billsBodyHtml;
+    if (allPaid) {
+      billsBodyHtml =
+        RW.ui.empty('✅', '¡Todo pagao! All bills settled for this cycle.') +
+        '<div style="margin-top:16px">' +
+          visibleBillers.map(billerCard).join('') +
+        '</div>';
+    } else {
+      billsBodyHtml = visibleBillers.map(billerCard).join('');
+    }
+
+    // ---- Hidden billers section ----
+    var hiddenSectionHtml = hiddenBillers.length
+      ? RW.ui.sectionTitle('Optional (hidden)') +
+        '<div class="card" style="padding:0 12px">' +
+          hiddenBillers.map(hiddenRow).join('') +
+        '</div>'
+      : '';
+
+    var body =
+      statsHtml +
+      ddInfoHtml +
       RW.ui.sectionTitle('Your Bills') +
-      billersHtml +
-      hiddenNotice +
-      '<div class="muted tiny" style="margin-top:16px;text-align:center">' +
-        'Tip: set up Direct Debit for each biller to never miss a payment.' +
+      billsBodyHtml +
+      hiddenSectionHtml +
+      '<div style="text-align:center;font-size:11.5px;color:var(--ash);margin-top:18px;line-height:1.5">' +
+        'Gibraltar pound (GIP) · pegged 1:1 to GBP · all amounts debited from Rockway Wallet' +
       '</div>';
 
     return RW.ui.screen({ title: 'Bills', body });
   }
 
-  // ---- Register activity feed provider ----
+  // ---- Activity feed ----
   RW.registerActivity(function () {
     RW.S.bills = RW.S.bills || {};
     var items = [];
     Object.keys(RW.S.bills).forEach(function (id) {
       var entry = RW.S.bills[id];
-      if (!entry || !entry.paidAt) return;
+      if (!entry) return;
       var biller = BILLERS.filter(function (b) { return b.id === id; })[0];
       var name = biller ? biller.name : id;
-      items.push({
-        t: entry.paidAt,
-        html: '<div class="card row">' +
-          '<div class="lead">🧾</div>' +
-          '<div class="body">' +
-            '<div class="name">' + esc(name) + ' bill paid</div>' +
-            '<div class="sub">' + esc(money(entry.amount)) + ' · ' + esc(fmtTime(entry.paidAt)) + '</div>' +
-          '</div>' +
-          '<div class="trail"><span class="pill-status ok">Paid</span></div>' +
-        '</div>',
-      });
+      if (entry.paidAt) {
+        items.push({
+          t: entry.paidAt,
+          html: '<div class="card row">' +
+            '<div class="lead">🧾</div>' +
+            '<div class="body">' +
+              '<div class="name">' + esc(name) + ' bill paid</div>' +
+              '<div class="sub"><span class="num">' + esc(money(entry.amount)) + '</span> · ' + esc(fmtTime(entry.paidAt)) + '</div>' +
+            '</div>' +
+            '<div class="trail"><span class="pill-status ok">Paid</span></div>' +
+          '</div>',
+        });
+      }
       if (entry.directDebit && entry.directDebitSetAt) {
         items.push({
           t: entry.directDebitSetAt,
           html: '<div class="card row">' +
-            '<div class="lead">🔄</div>' +
+            '<div class="lead">↻</div>' +
             '<div class="body">' +
-              '<div class="name">' + esc(name) + ' — Direct Debit set up</div>' +
+              '<div class="name">' + esc(name) + ' — Direct Debit active</div>' +
               '<div class="sub">' + esc(fmtTime(entry.directDebitSetAt)) + '</div>' +
             '</div>' +
-            '<div class="trail"><span class="pill-status ok">Active</span></div>' +
+            '<div class="trail"><span class="pill-status info">DD Active</span></div>' +
           '</div>',
         });
       }
@@ -258,15 +306,15 @@
     actions: {
       billsPay: function (el) {
         RW.S.bills = RW.S.bills || {};
-        var id = el.dataset.id;
-        var name = el.dataset.name;
+        var id     = el.dataset.id;
+        var name   = el.dataset.name;
         var amount = parseFloat(el.dataset.amount);
         if (!id || isNaN(amount) || amount <= 0) {
           RW.toast('Invalid bill data.');
           return;
         }
         if (isPaid(id)) {
-          RW.toast(name + ' is already marked as paid.');
+          RW.toast(esc(name) + ' is already marked as paid this cycle.');
           return;
         }
         var ok = RW.store.debit(amount, name + ' bill');
@@ -279,13 +327,13 @@
           amount: amount,
         });
         RW.store.save();
-        RW.toast(name + ' bill paid — ' + money(amount) + ' debited.');
+        RW.toast('✓ ' + name + ' paid — ' + money(amount) + ' debited from wallet.');
         RW.render();
       },
 
       billsDirectDebitOn: function (el) {
         RW.S.bills = RW.S.bills || {};
-        var id = el.dataset.id;
+        var id   = el.dataset.id;
         var name = el.dataset.name;
         if (!id) return;
         RW.S.bills[id] = Object.assign(RW.S.bills[id] || {}, {
@@ -293,13 +341,13 @@
           directDebitSetAt: Date.now(),
         });
         RW.store.save();
-        RW.toast('Direct Debit set up for ' + name + '. Mandate registered.');
+        RW.toast('↻ Direct Debit set up for ' + name + '. Mandate registered — payments collected automatically.');
         RW.render();
       },
 
       billsDirectDebitOff: function (el) {
         RW.S.bills = RW.S.bills || {};
-        var id = el.dataset.id;
+        var id   = el.dataset.id;
         var name = el.dataset.name;
         if (!id) return;
         RW.S.bills[id] = Object.assign(RW.S.bills[id] || {}, {
@@ -307,26 +355,26 @@
           directDebitSetAt: null,
         });
         RW.store.save();
-        RW.toast('Direct Debit cancelled for ' + name + '.');
+        RW.toast('Direct Debit cancelled for ' + name + '. You will need to pay manually.');
         RW.render();
       },
 
       billsToggleOptional: function (el) {
         RW.S.bills = RW.S.bills || {};
-        var id = el.dataset.id;
-        var name = el.dataset.name;
+        var id      = el.dataset.id;
+        var name    = el.dataset.name;
         if (!id) return;
         var current = isHidden(id);
         RW.S.bills[id] = Object.assign(RW.S.bills[id] || {}, {
           hidden: !current,
         });
         RW.store.save();
-        RW.toast((current ? 'Showing ' : 'Hiding ') + name + '.');
+        RW.toast(current ? 'Showing ' + name + '.' : name + ' hidden — tap Show to restore.');
         RW.render();
       },
 
       billsView: function (el) {
-        var id = el.dataset.id;
+        var id     = el.dataset.id;
         var biller = BILLERS.filter(function (b) { return b.id === id; })[0];
         if (!biller) return;
         RW.toast(biller.name + ': ' + money(biller.amount) + ' due. ' + biller.contact);
