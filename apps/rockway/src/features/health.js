@@ -5,10 +5,10 @@
 
   // ---- GP appointment windows (PCC, 200 52441) ----
   const WINDOWS = [
-    { id: 'same-day',  label: 'Same-day appointment',  sub: 'Call 08:15 – 11:00',  startH: 8,  startM: 15, endH: 11, endM: 0  },
-    { id: 'follow-up', label: 'Follow-up / specialist', sub: 'Bloods, driving medicals, dietician · 11:00 – 15:00', startH: 11, startM: 0,  endH: 15, endM: 0  },
-    { id: 'evening',   label: 'Evening clinic',          sub: 'Call 16:00 – 18:00',  startH: 16, startM: 0,  endH: 18, endM: 0  },
-    { id: 'weekend',   label: 'Weekend / emergency GP',  sub: 'Sat–Sun 08:30–09:30 and 15:30–16:30', startH: 8, startM: 30, endH: 9, endM: 30 },
+    { id: 'same-day',  label: 'Same-day appointment',   sub: 'Call 08:15–11:00 · urgent on-the-day slots',              startH: 8,  startM: 15, endH: 11, endM: 0  },
+    { id: 'follow-up', label: 'Follow-up / Specialist',  sub: 'Bloods, driving medicals, dietician · 11:00–15:00',       startH: 11, startM: 0,  endH: 15, endM: 0  },
+    { id: 'evening',   label: 'Evening clinic',           sub: 'Call 16:00–18:00 · routine follow-up',                    startH: 16, startM: 0,  endH: 18, endM: 0  },
+    { id: 'weekend',   label: 'Weekend / Emergency GP',   sub: 'Sat–Sun 08:30–09:30 and 15:30–16:30',              startH: 8,  startM: 30, endH: 9,  endM: 30 },
   ];
 
   // ---- example repeat-prescription meds ----
@@ -21,178 +21,282 @@
 
   // ---- duty pharmacy (today's, rotated by day-of-year for demo realism) ----
   const PHARMACIES = [
-    { name: 'Mill Pharmacy',       address: '291 Main Street' },
-    { name: 'Calpe Pharmacy',      address: '267 Main Street' },
-    { name: 'Parody\'s Pharmacy',  address: '206 Main Street' },
-    { name: 'Central Pharmacy',    address: '179 Main Street' },
-    { name: 'Victoria Pharmacy',   address: '120 Main Street' },
+    { name: 'Mill Pharmacy',     address: '291 Main Street' },
+    { name: 'Calpe Pharmacy',    address: '267 Main Street' },
+    { name: "Parody’s Pharmacy", address: '206 Main Street' },
+    { name: 'Central Pharmacy',  address: '179 Main Street' },
+    { name: 'Victoria Pharmacy', address: '120 Main Street' },
   ];
 
   function todayDutyPharmacy() {
-    const d = new Date();
-    const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+    var d = new Date();
+    var dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
     return PHARMACIES[dayOfYear % PHARMACIES.length];
   }
 
-  // ---- helpers ----
+  // ---- time helpers ----
   function nowInWindow(w) {
-    const now = new Date();
-    const h = now.getHours(), m = now.getMinutes();
-    const afterStart = h > w.startH || (h === w.startH && m >= w.startM);
-    const beforeEnd  = h < w.endH  || (h === w.endH  && m <  w.endM);
+    var now = new Date();
+    var h = now.getHours(), m = now.getMinutes();
+    var afterStart = h > w.startH || (h === w.startH && m >= w.startM);
+    var beforeEnd  = h < w.endH  || (h === w.endH  && m <  w.endM);
     return afterStart && beforeEnd;
   }
 
   function isWeekend() {
-    const d = new Date().getDay(); return d === 0 || d === 6;
+    var d = new Date().getDay(); return d === 0 || d === 6;
   }
 
   function windowOpen(w) {
     if (w.id === 'weekend') return isWeekend() && nowInWindow(w);
-    if (w.id === 'same-day' || w.id === 'follow-up' || w.id === 'evening') {
-      return !isWeekend() && nowInWindow(w);
-    }
-    return false;
+    return !isWeekend() && nowInWindow(w);
   }
 
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
   function nextSlotFor(w) {
-    // Build a slot label: today at a mid-point of the window, or tomorrow
-    const now = new Date();
-    const slotH = w.startH;
-    const slotM = w.startM;
-    const pad = (n) => String(n).padStart(2, '0');
-    // If window hasn't opened today, use today; otherwise next available day
-    const h = now.getHours(), m = now.getMinutes();
-    const pastEnd = h > w.endH || (h === w.endH && m >= w.endM);
-    const d = new Date(now);
+    var now = new Date();
+    var h = now.getHours(), m = now.getMinutes();
+    var pastEnd = h > w.endH || (h === w.endH && m >= w.endM);
+    var d = new Date(now);
     if (pastEnd) d.setDate(d.getDate() + 1);
-    const dateLabel = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-    return dateLabel + ' at ' + pad(slotH) + ':' + pad(slotM);
+    var dateLabel = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    return dateLabel + ' at ' + pad2(w.startH) + ':' + pad2(w.startM);
   }
 
   function healthAppts() {
-    return (RW.S.appointments || []).filter((a) => a.kind === 'health');
+    return (RW.S.appointments || []).filter(function (a) { return a.kind === 'health'; });
+  }
+
+  // ---- duty pharmacy open/closed check ----
+  function dutyPharmacyStatus() {
+    var now = new Date();
+    var h = now.getHours(), m = now.getMinutes();
+    var mins = h * 60 + m;
+    var wknd = isWeekend();
+    if (!wknd) {
+      // Mon-Fri duty: 19:00-21:00
+      if (mins >= 19 * 60 && mins < 21 * 60) return { open: true, hours: '19:00–21:00 (tonight)' };
+      return { open: false, hours: 'Opens 19:00–21:00 (Mon–Fri)' };
+    }
+    // Weekends: 11:00-13:00 and 18:00-20:00
+    if ((mins >= 11 * 60 && mins < 13 * 60) || (mins >= 18 * 60 && mins < 20 * 60)) {
+      return { open: true, hours: '11:00–13:00 & 18:00–20:00 (weekends)' };
+    }
+    return { open: false, hours: '11:00–13:00 & 18:00–20:00 (weekends)' };
   }
 
   // ---- render ----
   function render() {
-    const duty = todayDutyPharmacy();
-    const prescriptions = RW.S.prescriptions || [];
-    const appts = healthAppts().slice().reverse();
+    var duty = todayDutyPharmacy();
+    var dutyStatus = dutyPharmacyStatus();
+    var prescriptions = RW.S.prescriptions || [];
+    var appts = healthAppts().slice().reverse();
 
-    // --- emergency widget ---
-    const emergency =
-      '<div class="card" style="border:2px solid #c0392b;background:#fff5f5">' +
-        '<div class="name" style="color:#c0392b;font-weight:700;font-size:16px;margin-bottom:6px">Emergency Services</div>' +
-        '<div class="sub" style="margin-bottom:10px">Unified since 18 March 2024 — automated menu routes your call</div>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-          '<button class="btn dark" data-act="healthEmergency" data-num="999" data-label="Emergency (Police / Ambulance / Fire)">📞 999</button>' +
-          '<button class="btn ghost" data-act="healthEmergency" data-num="112" data-label="Emergency (112 — GSM international)">📞 112</button>' +
+    // ----------------------------------------------------------------
+    // 1. EMERGENCY WIDGET — unmistakable danger styling, not alarmist
+    // ----------------------------------------------------------------
+    var emergency =
+      '<div class="card" style="background:#fff0f0;border:2.5px solid var(--danger);border-radius:var(--radius);margin-bottom:4px">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+          '<div style="width:42px;height:42px;border-radius:12px;background:var(--danger);display:grid;place-items:center;font-size:22px;flex:0 0 auto">🚨</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-weight:900;font-size:16px;color:var(--danger);letter-spacing:-.2px">Emergency Services</div>' +
+            '<div class="subtle" style="font-size:12px;margin-top:1px">Gibraltar 999 · automated menu routes your call</div>' +
+          '</div>' +
         '</div>' +
-        '<div style="margin-top:8px;font-size:12px;color:#888">Non-emergency: Police 200 72500 · Ambulance 200 77390 · Fire 200 79507</div>' +
-      '</div>';
-
-    // --- GP booking windows ---
-    const windowRows = WINDOWS.map((w) => {
-      const open = windowOpen(w);
-      const slot = nextSlotFor(w);
-      return '<div class="row">' +
-        '<div class="lead" style="background:' + (open ? '#d4edda' : '#f5f5f5') + '">' + (open ? '🟢' : '⏰') + '</div>' +
-        '<div class="body">' +
-          '<div class="name">' + esc(w.label) + '</div>' +
-          '<div class="sub">' + esc(w.sub) + '</div>' +
-          (open ? '' : '<div class="sub" style="color:#888">Next slot: ' + esc(slot) + '</div>') +
-        '</div>' +
-        '<div class="trail">' +
-          '<button class="btn sm' + (open ? '' : ' ghost') + '" data-act="healthBook" data-wid="' + esc(w.id) + '" data-wlabel="' + esc(w.label) + '" data-slot="' + esc(slot) + '">' +
-            (open ? 'Book' : 'Book') +
+        '<div class="grid2" style="margin-bottom:10px">' +
+          '<button class="btn" style="background:var(--danger);box-shadow:0 6px 18px rgba(212,17,42,0.35)" data-act="healthEmergency" data-num="999" data-label="Emergency 999 (Police / Ambulance / Fire)">' +
+            '📞 999' +
+          '</button>' +
+          '<button class="btn ghost" style="color:var(--danger);box-shadow:inset 0 0 0 1.5px var(--danger)" data-act="healthEmergency" data-num="112" data-label="Emergency 112 (GSM international)">' +
+            '📞 112' +
           '</button>' +
         '</div>' +
+        '<div class="divider" style="margin:8px 0"></div>' +
+        '<div style="font-size:11.5px;color:var(--ash);line-height:1.7">' +
+          '<strong style="color:var(--slate)">Non-emergency:</strong> ' +
+          'Police 200 72500 · Ambulance 200 77390 · Fire 200 79507' +
+        '</div>' +
       '</div>';
+
+    // ----------------------------------------------------------------
+    // 2. GP BOOKING — live open/closed indicator per window
+    // ----------------------------------------------------------------
+    var windowRows = WINDOWS.map(function (w) {
+      var open = windowOpen(w);
+      var slot = nextSlotFor(w);
+      var statusPill = open
+        ? '<span class="pill-status ok" style="font-size:11px">Open now</span>'
+        : '<span class="pill-status neutral" style="font-size:11px">Closed</span>';
+      var nextLine = open
+        ? ''
+        : '<div class="subtle" style="font-size:11px;margin-top:3px">Next: ' + esc(slot) + '</div>';
+      var btn = open
+        ? '<button class="btn sm" data-act="healthBook" data-wid="' + esc(w.id) + '" data-wlabel="' + esc(w.label) + '" data-slot="' + esc(slot) + '">Book</button>'
+        : '<button class="btn sm ghost" data-act="healthBook" data-wid="' + esc(w.id) + '" data-wlabel="' + esc(w.label) + '" data-slot="' + esc(slot) + '">Book</button>';
+      return RW.ui.row({
+        lead: open ? '🟢' : '⏰',
+        leadBg: open ? '#d4edda' : '#f0f0f5',
+        name: w.label,
+        sub: w.sub,
+        trail: statusPill + '<div style="margin-top:6px;text-align:right">' + btn + '</div>' + nextLine,
+      });
     }).join('');
 
-    const gpSection =
-      RW.ui.sectionTitle('Book a GP Appointment', '', '') +
-      '<div class="card muted tiny" style="margin-bottom:8px">Primary Care Centre · 200 52441 · Free via GPMS (GHA card required)</div>' +
+    var gpSection =
+      RW.ui.sectionTitle('Book a GP Appointment') +
+      '<div class="card" style="background:var(--sea-soft);border-radius:var(--radius);padding:11px 14px;margin-bottom:8px">' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span style="font-size:20px">🏥</span>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-weight:800;font-size:13.5px;color:var(--sea)">Primary Care Centre &middot; <span class="num">200 52441</span></div>' +
+            '<div class="subtle" style="font-size:11.5px;margin-top:2px">Book up to 4 weeks ahead &middot; request preferred GP</div>' +
+          '</div>' +
+          '<span class="pill-status ok" style="font-size:11px;white-space:nowrap">Free at point of use (GPMS)</span>' +
+        '</div>' +
+      '</div>' +
       '<div class="card">' + windowRows + '</div>';
 
-    // --- upcoming health appointments ---
-    const apptSection = appts.length
-      ? RW.ui.sectionTitle('Upcoming Appointments') +
+    // ----------------------------------------------------------------
+    // 3. UPCOMING APPOINTMENTS — empty state if none
+    // ----------------------------------------------------------------
+    var apptSection;
+    if (appts.length) {
+      var apptRows = appts.map(function (a) {
+        return RW.ui.row({
+          lead: '📅',
+          leadBg: '#d4edda',
+          name: esc(a.name),
+          sub: esc(a.when) + ' · Ref ' + esc(a.ref),
+          trail: '<span class="pill-status info" style="font-size:11px">Confirmed</span>',
+        });
+      }).join('');
+      apptSection =
+        RW.ui.sectionTitle('Your Appointments') +
+        '<div class="card">' + apptRows + '</div>';
+    } else {
+      apptSection =
+        RW.ui.sectionTitle('Your Appointments') +
         '<div class="card">' +
-        appts.map((a) =>
-          '<div class="row">' +
-            '<div class="lead" style="background:#d4edda">📅</div>' +
-            '<div class="body">' +
-              '<div class="name">' + esc(a.name) + '</div>' +
-              '<div class="sub">' + esc(a.when) + ' · Ref ' + esc(a.ref) + '</div>' +
-            '</div>' +
-          '</div>'
-        ).join('') +
-        '</div>'
-      : '';
+          RW.ui.empty('📅', 'No health appointments booked yet. Use the windows above to book with your GP at the PCC.') +
+        '</div>';
+    }
 
-    // --- repeat prescriptions ---
-    const rxRows = MEDS.map((med) => {
-      const requested = prescriptions.find((p) => p.medId === med.id && p.status === 'Requested');
-      return '<div class="row">' +
-        '<div class="lead" style="background:#e8f4fd">💊</div>' +
-        '<div class="body">' +
-          '<div class="name">' + esc(med.name) + '</div>' +
-          '<div class="sub">' + esc(med.schedule) + '</div>' +
-        '</div>' +
-        '<div class="trail">' +
-          (requested
-            ? '<span class="pill-status ok">Requested</span>'
-            : '<button class="btn sm ghost" data-act="healthRepeat" data-medid="' + esc(med.id) + '" data-medname="' + esc(med.name) + '">Request</button>'
-          ) +
-        '</div>' +
-      '</div>';
+    // ----------------------------------------------------------------
+    // 4. REPEAT PRESCRIPTIONS — status pills + requested state
+    // ----------------------------------------------------------------
+    var rxRows = MEDS.map(function (med) {
+      var existing = prescriptions.find(function (p) { return p.medId === med.id && p.status === 'Requested'; });
+      var trailHtml;
+      if (existing) {
+        trailHtml =
+          '<div style="text-align:right">' +
+            '<span class="pill-status ok" style="font-size:11px">Requested ✓</span>' +
+            '<div class="subtle" style="font-size:10.5px;margin-top:3px">Allow 48 hrs</div>' +
+          '</div>';
+      } else {
+        trailHtml =
+          '<button class="btn sm ghost" data-act="healthRepeat" data-medid="' + esc(med.id) + '" data-medname="' + esc(med.name) + '">Request</button>';
+      }
+      return RW.ui.row({
+        lead: '💊',
+        leadBg: '#e8f4fd',
+        name: med.name,
+        sub: med.schedule,
+        trail: trailHtml,
+      });
     }).join('');
 
-    const rxSection =
+    var rxSection =
       RW.ui.sectionTitle('Repeat Prescriptions') +
-      '<div class="card muted tiny" style="margin-bottom:8px">Requests submitted to GHA. Collect from your pharmacy when ready.</div>' +
+      '<div class="card" style="background:var(--cloud);border-radius:var(--radius);padding:11px 14px;margin-bottom:8px">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<span style="font-size:16px">ℹ️</span>' +
+          '<div class="subtle" style="font-size:12px">Requests go to GHA. Collect from your pharmacy when ready — allow 48 hrs. Free at point of use (GPMS).</div>' +
+        '</div>' +
+      '</div>' +
       '<div class="card">' + rxRows + '</div>';
 
-    // --- GHA 111 out-of-hours card ---
-    const oohSection =
+    // ----------------------------------------------------------------
+    // 5. OUT-OF-HOURS / GHA 111
+    // ----------------------------------------------------------------
+    var oohSection =
       RW.ui.sectionTitle('Out-of-Hours / Advice') +
       '<div class="card">' +
-        '<div class="row">' +
-          '<div class="lead" style="background:#fff3cd">📞</div>' +
-          '<div class="body">' +
-            '<div class="name">GHA 111 — Clinical Advisor</div>' +
-            '<div class="sub">When PCC is closed · non-emergency medical advice</div>' +
-          '</div>' +
-          '<div class="trail"><button class="btn sm" data-act="healthDuty" data-num="111" data-label="GHA 111 Out-of-hours">Call 111</button></div>' +
-        '</div>' +
-        '<div class="row">' +
-          '<div class="lead" style="background:#fde8e8">🚑</div>' +
-          '<div class="body">' +
-            '<div class="name">A&amp;E — St Bernard\'s Hospital</div>' +
-            '<div class="sub">Genuine emergencies · 24/7</div>' +
-          '</div>' +
-          '<div class="trail"><button class="btn sm dark" data-act="healthEmergency" data-num="999" data-label="Emergency 999">999</button></div>' +
-        '</div>' +
+        RW.ui.row({
+          lead: '📞',
+          leadBg: '#fff3cd',
+          name: 'GHA 111 — Clinical Advisor',
+          sub: 'When PCC is closed · non-emergency medical advice',
+          trail: '<button class="btn sm" data-act="healthDuty" data-num="111" data-label="GHA 111 Out-of-hours">Call 111</button>',
+        }) +
+        RW.ui.row({
+          lead: '🏥',
+          leadBg: '#fde8e8',
+          name: 'A&amp;E — St Bernard’s Hospital',
+          sub: 'Genuine emergencies · 24/7 · free at point of use',
+          trail: '<button class="btn sm" style="background:var(--danger)" data-act="healthEmergency" data-num="999" data-label="Emergency 999">999</button>',
+        }) +
+        RW.ui.row({
+          lead: '🔥',
+          leadBg: '#fff0e8',
+          name: 'Legacy direct line',
+          sub: 'Fire &amp; Ambulance direct (still active) · 190',
+          trail: '<button class="btn sm ghost" data-act="healthDuty" data-num="190" data-label="Fire &amp; Ambulance direct 190">Call 190</button>',
+        }) +
       '</div>';
 
-    // --- duty pharmacy tile ---
-    const dutySection =
+    // ----------------------------------------------------------------
+    // 6. DUTY PHARMACY — clear tile with hours + open/closed pill
+    // ----------------------------------------------------------------
+    var dutyPill = dutyStatus.open
+      ? '<span class="pill-status ok" style="font-size:11px">Open now</span>'
+      : '<span class="pill-status neutral" style="font-size:11px">Closed</span>';
+
+    var dutySection =
       RW.ui.sectionTitle('Duty Pharmacy Today') +
       '<div class="card">' +
-        '<div class="row">' +
-          '<div class="lead" style="background:#e8f8f0">🏥</div>' +
-          '<div class="body">' +
-            '<div class="name">' + esc(duty.name) + '</div>' +
-            '<div class="sub">' + esc(duty.address) + ' · Mon–Fri 19:00–21:00 · Weekends 11:00–13:00 &amp; 18:00–20:00</div>' +
+        '<div style="display:flex;align-items:flex-start;gap:12px;padding:4px 0 10px">' +
+          '<div class="lead" style="background:#e8f8f0;border-radius:14px;width:46px;height:46px;display:grid;place-items:center;font-size:22px;flex:0 0 auto">💊</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-weight:800;font-size:15px">' + esc(duty.name) + '</div>' +
+            '<div class="subtle">' + esc(duty.address) + '</div>' +
+            '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+              dutyPill +
+              '<span class="subtle">' + esc(dutyStatus.hours) + '</span>' +
+            '</div>' +
           '</div>' +
-          '<div class="trail"><button class="btn sm ghost" data-act="healthPick" data-pharmacy="' + esc(duty.name) + '">Info</button></div>' +
+          '<div style="flex:0 0 auto">' +
+            '<button class="btn sm ghost" data-act="healthPick" data-pharmacy="' + esc(duty.name) + '">Info</button>' +
+          '</div>' +
         '</div>' +
-        '<div style="padding:8px 12px;font-size:12px;color:#888">Full rota: gha.gi/duty-pharmacy</div>' +
+        '<div class="divider"></div>' +
+        '<div class="grid2" style="gap:8px">' +
+          '<div class="stat">' +
+            '<div class="n" style="font-size:13px;font-weight:800">Mon–Fri</div>' +
+            '<div class="l">19:00–21:00</div>' +
+          '</div>' +
+          '<div class="stat">' +
+            '<div class="n" style="font-size:13px;font-weight:800">Weekends</div>' +
+            '<div class="l">11:00–13:00 &amp; 18:00–20:00</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="subtle" style="font-size:11.5px;margin-top:10px">Full rota: <span style="color:var(--sea)">gha.gi/duty-pharmacy</span></div>' +
       '</div>';
 
-    const body =
+    // ----------------------------------------------------------------
+    // Hero banner
+    // ----------------------------------------------------------------
+    var heroHtml = RW.ui.hero({
+      emoji: '🩺',
+      title: 'Health Services',
+      sub: 'GHA · Gibraltar Health Authority',
+      accent: '#0a9d4a',
+      chips: ['Free at point of use', 'GPMS entitled', 'PCC 200 52441'],
+    });
+
+    var body =
       emergency +
       gpSection +
       apptSection +
@@ -200,31 +304,35 @@
       oohSection +
       dutySection;
 
-    return RW.ui.screen({ title: 'Health', body });
+    return RW.ui.screen({ title: 'Health', body: body, hero: heroHtml });
   }
 
   // ---- activity registration ----
-  RW.registerActivity(() => {
-    const appts = healthAppts().slice().reverse().map((a) => ({
-      t: a.t || 0,
-      html: '<div class="row">' +
-        '<div class="lead" style="background:#d4edda">📅</div>' +
-        '<div class="body">' +
-          '<div class="name">' + esc(a.name) + '</div>' +
-          '<div class="sub">' + esc(a.when) + ' · Ref ' + esc(a.ref) + '</div>' +
-        '</div>' +
-      '</div>',
-    }));
-    const rxs = (RW.S.prescriptions || []).slice().reverse().map((p) => ({
-      t: p.t || 0,
-      html: '<div class="row">' +
-        '<div class="lead" style="background:#e8f4fd">💊</div>' +
-        '<div class="body">' +
-          '<div class="name">Prescription: ' + esc(p.name) + '</div>' +
-          '<div class="sub">Status: ' + esc(p.status) + ' · ' + fmtTime(p.t) + '</div>' +
-        '</div>' +
-      '</div>',
-    }));
+  RW.registerActivity(function () {
+    var appts = healthAppts().slice().reverse().map(function (a) {
+      return {
+        t: a.t || 0,
+        html: RW.ui.row({
+          lead: '📅',
+          leadBg: '#d4edda',
+          name: a.name,
+          sub: a.when + ' · Ref ' + a.ref,
+          trail: '<span class="pill-status info" style="font-size:11px">Confirmed</span>',
+        }),
+      };
+    });
+    var rxs = (RW.S.prescriptions || []).slice().reverse().map(function (p) {
+      return {
+        t: p.t || 0,
+        html: RW.ui.row({
+          lead: '💊',
+          leadBg: '#e8f4fd',
+          name: 'Prescription: ' + esc(p.name),
+          sub: 'Status: ' + esc(p.status) + ' · ' + fmtTime(p.t),
+          trail: '<span class="pill-status ok" style="font-size:11px">' + esc(p.status) + '</span>',
+        }),
+      };
+    });
     return appts.concat(rxs);
   });
 
@@ -236,55 +344,55 @@
     tileBg: '#e3f7ec',
     section: 'services',
     order: 20,
-    render,
+    render: render,
     actions: {
-      healthBook: (el) => {
-        const wid    = el.dataset.wid;
-        const wlabel = el.dataset.wlabel;
-        const slot   = el.dataset.slot;
-        const apptName = wlabel + ' (PCC)';
+      healthBook: function (el) {
+        var wid    = el.dataset.wid;
+        var wlabel = el.dataset.wlabel;
+        var slot   = el.dataset.slot;
+        var apptRef = ref('GH');
+        var apptName = wlabel + ' (PCC)';
         RW.S.appointments = RW.S.appointments || [];
         RW.S.appointments.push({
           id: uid(),
           kind: 'health',
           name: apptName,
           when: slot,
-          ref: ref('GH'),
+          ref: apptRef,
           t: Date.now(),
         });
         RW.store.save();
-        RW.toast('GP appointment booked — ' + slot);
+        RW.toast('📅 Booked: ' + slot + ' · Ref ' + apptRef);
         RW.render();
       },
 
-      healthRepeat: (el) => {
-        const medId   = el.dataset.medid;
-        const medName = el.dataset.medname;
+      healthRepeat: function (el) {
+        var medId   = el.dataset.medid;
+        var medName = el.dataset.medname;
         RW.S.prescriptions = RW.S.prescriptions || [];
-        // Avoid duplicate pending requests for same med
-        const existing = RW.S.prescriptions.find((p) => p.medId === medId && p.status === 'Requested');
+        var existing = RW.S.prescriptions.find(function (p) { return p.medId === medId && p.status === 'Requested'; });
         if (existing) { RW.toast('Already requested: ' + medName); return; }
-        RW.S.prescriptions.push({ id: uid(), t: Date.now(), medId, name: medName, status: 'Requested' });
+        RW.S.prescriptions.push({ id: uid(), t: Date.now(), medId: medId, name: medName, status: 'Requested' });
         RW.store.save();
-        RW.toast('Repeat prescription requested: ' + medName);
+        RW.toast('💊 Prescription requested: ' + medName);
         RW.render();
       },
 
-      healthDuty: (el) => {
-        const num   = el.dataset.num;
-        const label = el.dataset.label;
-        RW.toast('Calling ' + label + ' (' + num + ') — in a real device this would dial.');
+      healthDuty: function (el) {
+        var num   = el.dataset.num;
+        var label = el.dataset.label;
+        RW.toast('Calling ' + label + ' (' + num + ') — on a real device this would dial.');
       },
 
-      healthEmergency: (el) => {
-        const num   = el.dataset.num;
-        const label = el.dataset.label;
-        RW.toast('EMERGENCY: calling ' + num + ' — ' + label + '. On a real device this would dial immediately.');
+      healthEmergency: function (el) {
+        var num   = el.dataset.num;
+        var label = el.dataset.label;
+        RW.toast('🚨 Calling ' + num + ' — ' + label + '. On a real device this dials immediately.');
       },
 
-      healthPick: (el) => {
-        const pharmacy = el.dataset.pharmacy;
-        RW.toast('Duty pharmacy: ' + pharmacy + ' — see gha.gi/duty-pharmacy for live rota.');
+      healthPick: function (el) {
+        var pharmacy = el.dataset.pharmacy;
+        RW.toast('💊 Duty pharmacy: ' + pharmacy + ' — see gha.gi/duty-pharmacy for live rota.');
       },
     },
   });

@@ -97,6 +97,16 @@
 
   const CATEGORIES = ['All', 'Furniture', 'Electronics', 'Vehicles', 'Baby & Kids', 'Bikes', 'Free'];
 
+  // ---- Category colour map ----
+  var CAT_STYLE = {
+    'Furniture':   'background:#e8f0fe;color:#1a56db',
+    'Electronics': 'background:#fef3c7;color:#92400e',
+    'Vehicles':    'background:#f3f0ff;color:#5b21b6',
+    'Baby & Kids': 'background:#fce7f3;color:#9d174d',
+    'Bikes':       'background:#ecfdf5;color:#065f46',
+    'Free':        'background:#d1fae5;color:#065f46',
+  };
+
   // ---- helpers ----
 
   function activeFilter() {
@@ -104,14 +114,14 @@
   }
 
   function allListings() {
-    // user listings first, then seed
-    const userListings = (RW.S.listings || []).slice().reverse();
+    // user listings newest-first, then seed (oldest first as posted)
+    var userListings = (RW.S.listings || []).slice().reverse();
     return userListings.concat(SEED);
   }
 
   function filteredListings() {
-    const f = activeFilter();
-    const all = allListings();
+    var f = activeFilter();
+    var all = allListings();
     if (f === 'All') return all;
     return all.filter(function (l) { return l.category === f; });
   }
@@ -121,32 +131,96 @@
     return RW.S.savedListings.indexOf(id) !== -1;
   }
 
-  function listingCard(l, compact) {
-    const saved = isSaved(l.id);
-    const saveLabel = saved ? '♥ Saved' : '♡ Save';
-    const saveStyle = saved ? 'color:var(--brand,#e0304e)' : '';
-    const priceBadge = l.price === 'Free'
-      ? '<span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700">Free</span>'
-      : '<span style="font-weight:800;font-size:15px">' + esc(l.price) + '</span>';
+  // Category pill badge — always escapes cat
+  function catPill(cat) {
+    var style = CAT_STYLE[cat] || 'background:var(--cloud);color:var(--slate)';
+    return '<span class="pill-status" style="' + style + ';font-size:11px;padding:3px 8px">' + esc(cat) + '</span>';
+  }
+
+  // Price badge — numeric prices use .num for tabular figures; zero = Free pill
+  function priceBadge(l) {
+    if (l.price === 'Free' || l.priceNum === 0) {
+      return '<span class="pill-status ok" style="font-size:12px">Free</span>';
+    }
+    return '<span class="num" style="font-weight:800;font-size:16px;color:var(--ink)">' + esc(l.price) + '</span>';
+  }
+
+  function listingCard(l) {
+    var saved = isSaved(l.id);
+    var saveLabel = saved ? '♥ Saved' : '♡ Save';
+    var saveCls = saved ? ' style="color:var(--brand)"' : '';
+    var isOwn = l.seller === 'You';
 
     return '<div class="card" style="margin-bottom:12px">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
-        '<div style="flex:1">' +
-          '<div style="font-weight:700;font-size:15px;margin-bottom:4px">' + esc(l.title) + '</div>' +
-          '<div style="margin-bottom:6px">' + priceBadge + '</div>' +
-          '<div style="font-size:12px;color:#666;margin-bottom:6px">' +
-            '<span class="chip" style="margin-right:4px">' + esc(l.category) + '</span>' +
-            '<span class="chip">' + esc(l.area) + '</span>' +
-          '</div>' +
-          '<div style="font-size:13px;color:#444;line-height:1.45;margin-bottom:8px">' + esc(l.desc) + '</div>' +
-          '<div style="font-size:12px;color:#888">Seller: <strong>' + esc(l.seller) + '</strong> · ' + fmtTime(l.t) + '</div>' +
+      // Header: title left, price right
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">' +
+        '<div style="font-weight:700;font-size:15px;line-height:1.3;flex:1">' + esc(l.title) + '</div>' +
+        '<div style="flex:0 0 auto;text-align:right">' + priceBadge(l) + '</div>' +
+      '</div>' +
+      // Meta row: category pill, pin+area, seller (or "Your listing" badge)
+      '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px">' +
+        catPill(l.category) +
+        '<span style="font-size:12px;color:var(--ash)">&#x1f4cd; ' + esc(l.area) + '</span>' +
+        (isOwn
+          ? '<span class="pill-status info" style="font-size:11px;padding:3px 8px;margin-left:auto">Your listing</span>'
+          : '<span style="font-size:12px;color:var(--ash);margin-left:auto">&#x1f464; ' + esc(l.seller) + '</span>') +
+      '</div>' +
+      // Description
+      '<div style="font-size:13px;color:var(--slate);line-height:1.5;margin-bottom:8px">' + esc(l.desc) + '</div>' +
+      // Footer: timestamp + action buttons
+      '<div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--mist);padding-top:10px">' +
+        '<span style="font-size:11.5px;color:var(--fog)">' + fmtTime(l.t) + '</span>' +
+        '<div style="display:flex;gap:8px">' +
+          '<button class="btn sm ghost"' + saveCls + ' data-act="mktSave" data-id="' + esc(l.id) + '">' + saveLabel + '</button>' +
+          (isOwn
+            ? '<span class="pill-status neutral" style="font-size:11px;padding:5px 10px">Active</span>'
+            : '<button class="btn sm" data-act="mktMessage" data-id="' + esc(l.id) + '" data-seller="' + esc(l.seller) + '" data-title="' + esc(l.title) + '">Message</button>') +
         '</div>' +
       '</div>' +
-      (compact ? '' :
-        '<div style="display:flex;gap:8px;margin-top:10px;border-top:1px solid var(--rule,#f0f0f0);padding-top:10px">' +
-          '<button class="btn sm ghost" data-act="mktSave" data-id="' + esc(l.id) + '" style="' + saveStyle + '">' + saveLabel + '</button>' +
-          '<button class="btn sm" data-act="mktMessage" data-id="' + esc(l.id) + '" data-seller="' + esc(l.seller) + '" data-title="' + esc(l.title) + '">Message seller</button>' +
-        '</div>') +
+    '</div>';
+  }
+
+  // ---- Post form ----
+  function postForm() {
+    var catOptions = CATEGORIES.filter(function (c) { return c !== 'All'; }).map(function (c) {
+      return '<option value="' + esc(c) + '">' + esc(c) + '</option>';
+    }).join('');
+
+    return RW.ui.sectionTitle('Post an Item') +
+      '<div class="card" style="margin-bottom:16px">' +
+        '<label class="fld" style="margin-top:0">Title</label>' +
+        '<input class="input" id="mkt-title" placeholder="e.g. Sofa, iPhone 14, Dahon Bike…" autocomplete="off">' +
+        '<div class="grid2" style="margin-top:0">' +
+          '<div>' +
+            '<label class="fld">Price</label>' +
+            '<input class="input" id="mkt-price" placeholder="e.g. £50 or Free">' +
+          '</div>' +
+          '<div>' +
+            '<label class="fld">Category</label>' +
+            '<select class="input" id="mkt-category">' + catOptions + '</select>' +
+          '</div>' +
+        '</div>' +
+        '<label class="fld">Area (optional)</label>' +
+        '<input class="input" id="mkt-area" placeholder="e.g. Ocean Village, Irish Town…" autocomplete="off">' +
+        '<label class="fld">Description</label>' +
+        '<textarea class="input" id="mkt-desc" rows="3" placeholder="Condition, size, collection notes…" style="resize:vertical;min-height:68px"></textarea>' +
+        '<button class="btn" style="margin-top:14px" data-act="mktPost">&#x1f3f7;&#xfe0f; Post listing</button>' +
+      '</div>';
+  }
+
+  // ---- Stats bar ----
+  function statsBar(all) {
+    var total = all.length;
+    var freeCount = all.filter(function (l) { return l.priceNum === 0 || l.price === 'Free'; }).length;
+    return '<div class="grid2" style="margin-bottom:16px">' +
+      '<div class="stat">' +
+        '<div class="n num">' + total + '</div>' +
+        '<div class="l">Listings</div>' +
+      '</div>' +
+      '<div class="stat">' +
+        '<div class="n num">' + freeCount + '</div>' +
+        '<div class="l">Free items</div>' +
+      '</div>' +
     '</div>';
   }
 
@@ -154,74 +228,62 @@
     RW.S.listings = RW.S.listings || [];
     RW.S.savedListings = RW.S.savedListings || [];
 
-    const filter = activeFilter();
+    var filter = activeFilter();
+
+    // Hero banner
+    var heroHtml = RW.ui.hero({
+      emoji: '&#x1f3f7;&#xfe0f;',
+      title: 'Gibraltar Buy &amp; Sell',
+      sub: 'Second-hand goods, vehicles, electronics &amp; more — across the Rock',
+      accent: '#d4112a',
+    });
 
     // Category filter chips
-    const chips = CATEGORIES.map(function (c) {
-      const active = c === filter;
-      return '<button class="chip' + (active ? ' on' : '') + '" data-act="mktFilter" data-cat="' + esc(c) + '" style="' +
-        (active ? 'background:var(--brand,#e0304e);color:#fff;border-color:var(--brand,#e0304e)' : '') +
-        '">' + esc(c) + '</button>';
-    }).join(' ');
+    var chipItems = CATEGORIES.map(function (c) { return { label: c, value: c }; });
+    var chipsBar = RW.ui.chips(chipItems, filter, 'mktFilter', true);
 
-    const chipsBar = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">' + chips + '</div>';
-
-    // Post form
-    const postForm =
-      RW.ui.sectionTitle('Post an Item') +
-      '<div class="card" style="margin-bottom:14px">' +
-        '<label class="fld" style="margin-top:0">Title</label>' +
-        '<input class="input" id="mkt-title" placeholder="e.g. Sofa, iPhone, Bike…">' +
-        '<label class="fld">Price</label>' +
-        '<input class="input" id="mkt-price" placeholder="e.g. £50, Free, £120 ono">' +
-        '<label class="fld">Category</label>' +
-        '<select class="input" id="mkt-category">' +
-          CATEGORIES.filter(function (c) { return c !== 'All'; }).map(function (c) {
-            return '<option value="' + esc(c) + '">' + esc(c) + '</option>';
-          }).join('') +
-        '</select>' +
-        '<label class="fld">Description</label>' +
-        '<textarea class="input" id="mkt-desc" rows="3" placeholder="Condition, size, collection area…" style="resize:vertical;min-height:64px"></textarea>' +
-        '<button class="btn" style="margin-top:12px" data-act="mktPost">Post listing</button>' +
-      '</div>';
+    // Stats (always over full unfiltered set)
+    var statsHtml = statsBar(allListings());
 
     // Feed
-    const feedItems = filteredListings();
-    const feedHtml = feedItems.length
-      ? feedItems.map(function (l) { return listingCard(l, false); }).join('')
-      : RW.ui.empty('🔍', 'No listings in this category yet.');
+    var feedItems = filteredListings();
+    var feedHtml = feedItems.length
+      ? feedItems.map(function (l) { return listingCard(l); }).join('')
+      : RW.ui.empty('&#x1f50d;', 'No listings in this category yet.', 'Clear filter', '#/marketplace');
 
-    const feedSection = RW.ui.sectionTitle('Buy &amp; Sell', filter !== 'All' ? 'Clear filter' : '', filter !== 'All' ? '#/marketplace' : '') +
+    var feedLabel = filter === 'All' ? 'Buy &amp; Sell' : esc(filter);
+    var feedSection =
+      RW.ui.sectionTitle(feedLabel, filter !== 'All' ? 'Clear' : '', filter !== 'All' ? '#/marketplace' : '') +
       feedHtml;
 
-    // Your listings section
-    const myListings = (RW.S.listings || []).slice().reverse();
-    const mySection = myListings.length
-      ? RW.ui.sectionTitle('Your Listings') +
-        myListings.map(function (l) { return listingCard(l, false); }).join('')
-      : '';
+    // Your listings section (user-posted only, newest first)
+    var myListings = (RW.S.listings || []).slice().reverse();
+    var mySection = RW.ui.sectionTitle('Your Listings') +
+      (myListings.length
+        ? myListings.map(function (l) { return listingCard(l); }).join('')
+        : RW.ui.empty('&#x1f4dd;', 'You haven’t posted any listings yet. Use the form above to get started!', '', ''));
 
     // Saved section
-    const savedIds = RW.S.savedListings || [];
-    const savedItems = savedIds.map(function (id) {
+    var savedIds = RW.S.savedListings || [];
+    var savedItems = savedIds.map(function (id) {
       return SEED.find(function (s) { return s.id === id; }) ||
              (RW.S.listings || []).find(function (s) { return s.id === id; });
     }).filter(Boolean);
 
-    const savedSection = savedItems.length
-      ? RW.ui.sectionTitle('Saved') +
-        savedItems.map(function (l) { return listingCard(l, false); }).join('')
-      : '';
+    var savedSection = RW.ui.sectionTitle('Saved') +
+      (savedItems.length
+        ? savedItems.map(function (l) { return listingCard(l); }).join('')
+        : RW.ui.empty('♡', 'Tap the heart on any listing to save it here.', '', ''));
 
-    const body =
-      '<div class="muted tiny" style="margin-bottom:10px">Gibraltar Buy &amp; Sell — second-hand goods, vehicles, electronics &amp; more</div>' +
-      postForm +
+    var body =
+      statsHtml +
+      postForm() +
       chipsBar +
       feedSection +
-      (mySection ? '<div style="margin-top:4px">' + mySection + '</div>' : '') +
-      (savedSection ? '<div style="margin-top:4px">' + savedSection + '</div>' : '');
+      '<div style="margin-top:4px">' + mySection + '</div>' +
+      '<div style="margin-top:4px">' + savedSection + '</div>';
 
-    return RW.ui.screen({ title: 'Market', body });
+    return RW.ui.screen({ title: 'Market', hero: heroHtml, body: body });
   }
 
   // ---- Activity feed ----
@@ -231,7 +293,7 @@
       return {
         t: l.t,
         html: '<div class="card row">' +
-          '<div class="lead">🏷️</div>' +
+          '<div class="lead">&#x1f3f7;&#xfe0f;</div>' +
           '<div class="body">' +
             '<div class="name">Listed: ' + esc(l.title) + '</div>' +
             '<div class="sub">' + esc(l.price) + ' · ' + esc(l.category) + ' · ' + fmtTime(l.t) + '</div>' +
@@ -246,46 +308,57 @@
   RW.register({
     id: 'marketplace',
     title: 'Market',
-    emoji: '🏷️',
+    emoji: '&#x1f3f7;&#xfe0f;',
     tileBg: '#fde7ea',
     section: 'services',
     order: 50,
     render: render,
     actions: {
+
       mktPost: function () {
         RW.S.listings = RW.S.listings || [];
 
         var titleEl = document.getElementById('mkt-title');
         var priceEl = document.getElementById('mkt-price');
-        var catEl = document.getElementById('mkt-category');
-        var descEl = document.getElementById('mkt-desc');
+        var catEl   = document.getElementById('mkt-category');
+        var areaEl  = document.getElementById('mkt-area');
+        var descEl  = document.getElementById('mkt-desc');
 
         if (!titleEl || !priceEl || !catEl || !descEl) return;
 
-        var title = titleEl.value.trim();
-        var price = priceEl.value.trim();
+        var title    = titleEl.value.trim();
+        var price    = priceEl.value.trim();
         var category = catEl.value.trim();
-        var desc = descEl.value.trim();
+        var area     = (areaEl && areaEl.value.trim()) || 'Gibraltar';
+        var desc     = descEl.value.trim();
 
-        if (!title) { RW.toast('Please enter a title for your listing.'); return; }
-        if (!price) { RW.toast('Please enter a price (or "Free").'); return; }
+        if (!title)    { RW.toast('Please enter a title for your listing.'); return; }
+        if (!price)    { RW.toast('Please enter a price (or "Free").'); return; }
         if (!category) { RW.toast('Please choose a category.'); return; }
+
+        // Parse a numeric price for sorting/display; free items = 0
+        var priceNum = 0;
+        var priceNorm = price.toLowerCase().replace(/,/g, '');
+        if (priceNorm !== 'free') {
+          var parsed = parseFloat(priceNorm.replace(/[^\d.]/g, ''));
+          priceNum = isNaN(parsed) ? 0 : parsed;
+        }
 
         var listing = {
           id: 'ul-' + uid(),
           t: Date.now(),
           title: title,
           price: price,
-          priceNum: 0,
+          priceNum: priceNum,
           category: category,
-          area: 'Gibraltar',
+          area: area || 'Gibraltar',
           desc: desc || 'No description provided.',
           seller: 'You',
         };
 
         RW.S.listings.push(listing);
         RW.store.save();
-        RW.toast('🏷️ Listing posted!');
+        RW.toast('✅ Listing posted! It now appears in Buy & Sell.');
         RW.render();
       },
 
@@ -298,23 +371,25 @@
         if (idx === -1) {
           RW.S.savedListings.push(id);
           RW.store.save();
-          RW.toast('♥ Saved to your saved listings.');
+          RW.toast('♥ Saved to your Saved listings.');
         } else {
           RW.S.savedListings.splice(idx, 1);
           RW.store.save();
-          RW.toast('Removed from saved listings.');
+          RW.toast('Removed from Saved listings.');
         }
         RW.render();
       },
 
       mktMessage: function (el) {
         var seller = el.dataset.seller || 'the seller';
-        var title = el.dataset.title || 'this item';
+        var title  = el.dataset.title  || 'this item';
+        // Both seller and title come from data attributes which were esc()-encoded at render time;
+        // re-escape raw values here for the toast (toast already escapes internally).
         RW.toast('Message sent to ' + seller + ' about "' + title + '".');
       },
 
       mktFilter: function (el) {
-        var cat = el.dataset.cat || 'All';
+        var cat = el.dataset.v || 'All';
         RW._mktFilter = cat === 'All' ? null : cat;
         RW.render();
       },
