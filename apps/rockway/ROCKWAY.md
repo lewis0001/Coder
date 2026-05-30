@@ -5,11 +5,27 @@
 > Then read `TODO.md` (live checklist) and `AGENTS.md` (feature contract).
 
 ## What we're building
-**Rockway** — *Gibraltar's everything app*. One app for living on the Rock:
-food, groceries, parcels, the **live frontier (border) queue**, transport,
-money/wallet, government services, health, local marketplace, events and more.
-Branded around Gibraltar: flag **red `#d4112a`** + **castle-key gold `#f3b21b`**,
-Llanito language option, and details only a Gibraltarian would know.
+**Rockway** — *Gibraltar's local marketplace* (PIVOTED from "everything app").
+A realistic, launchable startup MVP: a **two-sided local-business discovery +
+booking platform** (customers find & book dog groomers, salons, PTs, mechanics,
+dentists, restaurant tables…; businesses self-onboard and manage bookings) plus
+the genuinely-automatable community features. Branded around Gibraltar: flag
+**red `#d4112a`** + **castle-key gold `#f3b21b`**, Llanito option, real local detail.
+
+### Pivot rationale (IMPORTANT — agreed with product owner)
+We deliberately **removed everything not easily automatable for an MVP** (needs a
+banking licence, a government/health partnership, or delivery operations):
+Eat, Shop, Send, Move, Wallet, Pay, Bills, Top-up, Rewards, Gov.gi, Health,
+Parking, Cart. **No in-app payments / no wallet** — bookings are pay-in-person
+requests (a PSP comes later). What's kept is automatable / user-generated /
+open-data only:
+- **Discover** (business directory + booking) + **For Business** (supply side) — the spine.
+- **Frontier** reframed honestly: live cameras + community crowd-reports (Gibraltar
+  has NO official wait-time feed, so we never invent minutes).
+- **News** wired to the REAL Gibraltar Chronicle RSS via a server proxy
+  (`/api/news`, 5-min cache) with graceful seed fallback (works offline/file://).
+- **What's On** (free RSVPs), **Explore** (free reservations), **Marketplace**
+  (classifieds), **Jobs**, **Property**, **Chat**.
 
 ## Design principles (per the product owner)
 1. **Fully implemented, never partial.** Every feature must actually work
@@ -69,26 +85,30 @@ gracefully, so the app always runs and features light up as files land. To add a
 feature: create `src/features/<id>.js` (already referenced in the manifest) — no
 shared-file edit needed.
 
-### State & money
-- All persisted state lives on `RW.S` (localStorage key `rockway.v1`).
+### State (no money — payments removed in the pivot)
+- All persisted state lives on `RW.S` (localStorage key **`rockway.v2`**).
 - Add new persisted fields to `defaults()` in `store.js` (forward-compatible
-  merge on load — never assume a field exists on old saves).
-- **Move money only** via `RW.store.debit(amt,label)` / `credit(amt,label)` —
-  this keeps the ledger, points and balance consistent.
-- After mutating state, call `RW.render()` to refresh.
+  merge on load — never assume a field exists on old saves; guard `|| []`).
+- There is **NO wallet / debit / credit** anymore. Bookings & reservations are
+  free requests. After mutating state, call `RW.store.save()` then `RW.render()`.
+- Key collections: `bookings`, `myBusiness`, `bizBookings`, `savedBusinesses`,
+  `frontierReports`, `reservations` (events+explore), `listings`/`savedListings`,
+  `jobApps`, `savedProperties`/`viewings`, `newsBookmarks`/`newsNotices`, `chats`.
 
 ## Status snapshot
-See `TODO.md` for the authoritative checklist.
-- ✅ Core plugin architecture + "Limestone & Key" design system + live Rock
-  hero + headless smoke test (green across **25 features**).
-- ✅ Distinctive non-generic shell: "The Rock, now" living home (state-aware SVG).
-- ✅ All 25 features built & integrated (each in an isolated module):
-  home · activity · account · cart/checkout/tracking · eat · shop · send ·
-  frontier · move · parking · wallet · pay · bills · topup · rewards · gov ·
-  health · jobs · property · marketplace · events · explore · news · chat.
-- ✅ Verified visually via headless Chromium screenshots.
-- ⏳ Next (cross-cutting polish): "Everything" launcher w/ search, Night Rock
-  dark theme, more live home signals, Llanito copy pass, PWA manifest.
+See `TODO.md` for the authoritative checklist. Pivoted to the marketplace MVP:
+- ✅ Core plugin architecture + "Limestone & Key" design system + live Rock hero.
+- ✅ Headless smoke test green across **13 features**.
+- ✅ Marketplace spine: **Discover** (14-business directory + slot booking) +
+  **For Business** (self-onboard + accept/decline bookings).
+- ✅ **Frontier** reframed (cameras + community reports). **News** live via
+  Chronicle RSS proxy (verified: returns real current headlines).
+- ✅ Kept & adapted: Home (living Rock) · Activity (bookings) · Account ·
+  What's On (RSVP) · Explore (reserve) · Marketplace · Jobs · Property · Chat.
+- ✅ Removed (not automatable): Eat, Shop, Send, Move, Wallet, Pay, Bills,
+  Top-up, Rewards, Gov.gi, Health, Parking, Cart.
+- ⏳ Next: richer booking (availability per business), business reviews write-back,
+  Discover search, PWA manifest, optional Stripe deposit on bookings.
 
 ## Working agreement for agents
 - One agent ⇒ its own feature file(s). **Never** edit core, `index.html`,

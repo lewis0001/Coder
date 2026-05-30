@@ -43,9 +43,9 @@ Create `src/features/<id>.js`:
 ## 2. Rules (non-negotiable)
 - **Fully implement.** No "coming soon" stubs. Every button does something real
   and, where state changes, persists it and reflects on re-render.
-- **Move money only via** `RW.store.debit(amount, label)` (returns false if
-  insufficient — handle it) and `RW.store.credit(amount, label)`. Never mutate
-  `RW.S.wallet` directly.
+- **No payments / no wallet.** Rockway is a booking marketplace with no in-app
+  money for the MVP (`RW.store.debit`/`credit` were removed). Bookings/reservations
+  are free requests confirmed by the business. Don't reintroduce a wallet.
 - **Persist** by writing to `RW.S.<field>` then `RW.store.save()`. If you need a
   NEW persisted array/field, it must also be added to `defaults()` in
   `src/core/store.js` — coordinate; the integrator does this, not you. Until

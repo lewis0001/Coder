@@ -1,48 +1,48 @@
 # Rockway — live build checklist
 
 Status: ✅ done · 🔨 in progress · ⏳ queued · 🔬 needs research
+Product: **Gibraltar local-business discovery + booking marketplace** (MVP).
+No in-app payments. Only automatable / UGC / open-data features. (See ROCKWAY.md
+"Pivot rationale".)
 
 ## Foundation
-- [x] Plugin/registry architecture (core/*)
-- [x] Design system (styles.css) + "Limestone & Key" + Rock hero
-- [x] Persistence + wallet ledger (store.js) + per-feature state slots
-- [x] Headless smoke test (test/smoke.js) — **green, 24+ features**
-- [x] Zero-dep server + file:// support
+- [x] Plugin/registry architecture (core/*) + zero-build, file:// support
+- [x] Design system (styles.css) + "Limestone & Key" + living Rock hero
+- [x] Persistence (store.js v2 — bookings/listings, no wallet)
+- [x] Headless smoke test (test/smoke.js) — **green, 13 features**
 - [x] Scaffold docs (ROCKWAY.md, AGENTS.md, this file, design-vision.md)
-- [x] 🔬 Gibraltar research dossier (docs/research/* + gibraltar-research.md)
-- [x] Distinctive, non-generic shell ("The Rock, now" living home + Rock SVG)
+- [x] Gibraltar research dossier (docs/research/*)
 
-## Features
-### Core surfaces
-- [x] Home (living Rock) · Activity (extensible feed) · Account · Cart/Checkout/Order tracking
+## Marketplace spine
+- [x] Discover — 14-business directory, category filters, business detail,
+  service list + day/slot booking → RW.S.bookings
+- [x] For Business — self-onboard listing + dashboard (accept/decline bookings)
+- [x] Activity — unified bookings + reservations feed
+- [x] Account — profile, language (EN/ES/Llanito), business CTA, stats
 
-### Daily life
-- [x] Eat · Shop · Send · Frontier (live border) · Move (Gib-accurate transit) · Parking
+## Automatable community features
+- [x] Frontier — live cameras + community crowd-reports (honest; no fake minutes)
+- [x] News — LIVE Gibraltar Chronicle RSS via /api/news proxy + seed fallback
+- [x] What's On — events with free RSVP/reservations
+- [x] Explore — attractions/tours, free reserve/enquire (operators sell tickets)
+- [x] Marketplace — local classifieds (post/save)
+- [x] Jobs — local board (apply/save)
+- [x] Property — rent/buy listings (save/request viewing)
+- [x] Chat — customer ⇄ business / friends threads
 
-### Money
-- [x] Wallet · Pay (P2P/split) · Bills (AquaGib/Rates/Gibtelecom) · Top-up (mobile/eSIM) · Rewards (Keys)
+## Removed in pivot (not easily automatable for MVP)
+- [x] Eat, Shop, Send, Move, Wallet, Pay, Bills, Top-up, Rewards, Gov.gi,
+  Health, Parking, Cart/checkout
 
-### Services
-- [x] Gov.gi · Health (GHA/PCC) · Jobs · Property · Marketplace
-
-### Explore & connect
-- [x] What's On (events) · Explore (attractions/tours) · Chat (Llanito threads) · News (headlines + noticeboard)
-
-## Refinement pass — DONE (per-module, via parallel agents)
-- [x] All 25 modules refined: heroes, filter chips, tabular figures, empty
-  states, status pills, richer detail, edge-cases, tasteful Llanito copy.
-- [x] Shared design system lifted (RW.ui.hero/chips; richer Rock illustration;
-  CSS num/pill/chip variants).
-- [x] Emoji cleanup (gov/topup/events) + fixed news default-filter empty-feed bug.
-- [x] Smoke hardened: shop-add flow + top-level feed-not-empty assertions.
-
-## Cross-cutting upgrades (next, optional)
-- [ ] "Everything" launcher sheet (search across features)
-- [ ] Dark "Night Rock" theme (time-of-day palette already in Rock SVG)
-- [ ] Live territory signals on Home (runway crossing for pedestrians, ships)
+## Next (optional)
+- [ ] Per-business availability (real open slots vs generic) + booking reschedule/cancel
+- [ ] Write a review back onto a business (currently read-only seed reviews)
+- [ ] Discover search box + map view
+- [ ] Real weather API on the Rock hero (Open-Meteo, same proxy pattern as news)
 - [ ] PWA manifest + offline cache
+- [ ] Optional card deposit on booking via a PSP (Stripe) — when licensed
 
-## Notes for continuity
+## Continuity
 - Manifest in `src/core/boot.js` lists every feature file.
-- After each change: run `node test/smoke.js` (must stay green) + update this file.
-- New persisted state must be added to `defaults()` in `src/core/store.js`.
+- After each change: `node test/smoke.js` (must stay green) + update this file.
+- New persisted state → add to `defaults()` in `src/core/store.js` (guard `|| []`).
