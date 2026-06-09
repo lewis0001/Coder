@@ -335,3 +335,41 @@ label.fld { display: block; font-size: 12.5px; font-weight: 700; color: var(--sl
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* ============ service launchpad (Careem-style grid, Rockway voice) ============ */
+.svc-hero {
+  display: flex; align-items: center; gap: 14px; width: 100%; border: 0; cursor: pointer;
+  background: var(--brand); color: #fff; border-radius: 16px; padding: 15px 16px;
+  text-align: left; font-family: inherit; transition: transform .08s ease, filter .12s;
+}
+.svc-hero:active { transform: scale(0.99); filter: brightness(0.95); }
+.svc-hero svg { width: 32px; height: 32px; flex: 0 0 auto; }
+.svc-hero .t { font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.1; }
+.svc-hero .s { font-size: 12px; opacity: .85; margin-top: 3px; font-weight: 500; }
+.svc-hero .go { margin-left: auto; font-size: 18px; opacity: .8; flex: 0 0 auto; }
+
+.svc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.svc {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  background: var(--white); border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px 11px 10px; cursor: pointer; font-family: inherit; text-align: left;
+  min-height: 84px; transition: transform .08s ease;
+  box-shadow: 0 1px 2px rgba(20, 24, 31, 0.03);
+}
+.svc:active { transform: scale(0.96); }
+.svc svg { width: 24px; height: 24px; color: var(--ink); }
+.svc .l { font-size: 12.5px; font-weight: 700; color: var(--ink); line-height: 1.15; letter-spacing: -0.1px; }
+.svc .h { font-size: 10.5px; color: var(--ash); font-weight: 600; margin-top: -2px; font-variant-numeric: tabular-nums; }
+.svc .h.live { color: var(--green); }
+
+/* flat editorial banner (replaces gradient promo carousel) */
+.banner {
+  display: flex; align-items: center; gap: 13px; width: 100%; border: 0; cursor: pointer;
+  background: #1c2430; color: #fff; border-radius: 16px; padding: 15px 16px;
+  text-align: left; font-family: inherit; transition: transform .08s ease;
+}
+.banner:active { transform: scale(0.99); }
+.banner svg { width: 28px; height: 28px; flex: 0 0 auto; color: var(--gold); }
+.banner .t { font-weight: 700; font-size: 14px; }
+.banner .s { font-size: 12px; opacity: .75; margin-top: 2px; }
+.banner .go { margin-left: auto; opacity: .7; }

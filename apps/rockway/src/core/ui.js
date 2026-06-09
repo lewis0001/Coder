@@ -28,11 +28,12 @@
   }
 
   function tabbar(active) {
+    const F = RW.FICON || {};
     const tabs = [
-      { id: 'home', label: 'Home', route: '#/', icon: ICON.home },
-      { id: 'discover', label: 'Discover', route: '#/discover', icon: ICON.grid },
-      { id: 'activity', label: 'Bookings', route: '#/activity', icon: ICON.activity },
-      { id: 'account', label: 'Account', route: '#/account', icon: ICON.user },
+      { id: 'home', label: 'Home', route: '#/', icon: F.home || ICON.home },
+      { id: 'discover', label: 'Discover', route: '#/discover', icon: F.discover || ICON.grid },
+      { id: 'activity', label: 'Bookings', route: '#/activity', icon: F.activity || ICON.activity },
+      { id: 'account', label: 'Account', route: '#/account', icon: F.account || ICON.user },
     ];
     return '<div class="tabbar">' + tabs.map((t) =>
       '<button class="tab' + (t.id === active ? ' active' : '') + '" data-act="nav" data-route="' + t.route + '">' +

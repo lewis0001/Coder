@@ -42,6 +42,7 @@
       _cableCarNotify: false,      // explore cable-car reopening notify flag
       _bizDraftCat: null,          // business onboarding draft category
       jobPosts: [],                // user-posted job adverts
+      reviews: [],                 // customer reviews: {id,t,bizId,rating,text}
       prefs: {},                   // account toggles (notifications etc.)
       addresses: [],               // saved addresses
 
