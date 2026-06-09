@@ -1,324 +1,396 @@
-/* Rockway feature — Jobs (Gibraltar job board with sector filters & applications). */
+/* Rockway feature — Jobs (honest Gibraltar job board: post a vacancy free during
+ * launch, clearly-badged example listings, and link-outs to where the Rock
+ * really hires — no fabricated adverts under real employers). */
 (function (RW) {
   'use strict';
   const { esc, uid, fmtTime } = RW.util;
 
-  // Guard persisted state (already seeded in store.js defaults)
+  // Legacy guard: jobApps held applications from the old (removed) fake apply
+  // flow. We keep the data so old blobs load cleanly, but never write to it.
   RW.S.jobApps = RW.S.jobApps || [];
 
-  // Sector accent colours for the detail hero
-  var SECTOR_ACCENT = {
-    iGaming:      '#6c3fc5',
-    Finance:      '#1a5fa8',
-    Insurance:    '#0e7a6c',
-    Shipping:     '#155a8a',
-    Legal:        '#8a4a00',
-    Healthcare:   '#c0392b',
-    'Civil Service': '#2e4a7a',
-    Hospitality:  '#b06000',
-    Retail:       '#1a7a3c',
+  var SECTORS = ['iGaming', 'Finance', 'Insurance', 'Shipping', 'Legal', 'Healthcare', 'Civil Service', 'Hospitality', 'Retail'];
+  var FILTER_ITEMS = ['All'].concat(SECTORS).map(function (s) { return { label: s, value: s }; });
+  var SECTOR_ITEMS = SECTORS.map(function (s) { return { label: s, value: s }; });
+
+  var AREAS = ['Main Street', 'Irish Town', 'Ocean Village', 'Marina Bay', 'Queensway Quay', 'Europort', 'Midtown', 'Gibraltar Harbour', 'Catalan Bay', 'Upper Town', 'Anywhere on the Rock'];
+
+  var SECTOR_EMOJI = {
+    iGaming: '🎮', Finance: '🏦', Insurance: '📋', Shipping: '⚓', Legal: '⚖️',
+    Healthcare: '🏥', 'Civil Service': '🏛️', Hospitality: '🍽️', Retail: '🛍️',
   };
 
-  // ---- Seed data: authentic Gibraltar listings across real sectors ----
-  var JOBS = [
+  // ---- Example listings ----
+  // Deliberately GENERIC employers: these illustrate what an advert looks like.
+  // No real firm is named and none of these can be applied to (see detail()).
+  var EXAMPLES = [
     {
-      id: 'j1',
+      id: 'ex1',
       sector: 'iGaming',
       title: 'Compliance & Licensing Officer',
-      employer: 'RockBet Interactive Ltd',
+      employer: 'An Ocean Village iGaming operator',
       area: 'Ocean Village',
-      salaryLow: 38000,
-      salaryHigh: 48000,
-      salary: '£38,000 – £48,000',
+      pay: '£38,000 – £48,000',
       type: 'Full-time',
-      source: 'RecruitGibraltar',
       emoji: '🎮',
-      shortDesc: 'Ensure licensing obligations are met under the Gibraltar Gambling Commissioner framework for a fast-growing online casino operator.',
-      fullDesc: 'RockBet Interactive Ltd is one of Gibraltar’s licensed online gaming operators, holding a full B2C Remote Gambling Licence from the Gibraltar Gambling Commissioner. We are seeking a Compliance & Licensing Officer to manage regulatory filings, respond to GFSC and GGC correspondence, and maintain internal policy documentation. You will work closely with the Legal and Risk teams to keep us ahead of evolving UK and Gibraltar regulatory requirements. A background in gaming compliance or financial-services regulation is essential. Experience with AML/KYC frameworks is highly desirable. Remote-friendly hybrid arrangement available with 3 days in the Ocean Village office.',
+      shortDesc: 'Keep a licensed online gaming firm on the right side of the Gibraltar Gambling Commissioner — filings, AML policy and licence work.',
+      fullDesc: 'A typical compliance brief at one of the Rock’s licensed operators: managing regulatory filings, responding to Gambling Commissioner correspondence, maintaining AML/KYC policy documents and working with legal and risk teams on evolving UK and Gibraltar requirements. Roles like this usually ask for gaming-compliance or financial-services experience and offer hybrid working around an Ocean Village office.',
     },
     {
-      id: 'j2',
+      id: 'ex2',
       sector: 'Finance',
-      title: 'Private Client Manager — Banking',
-      employer: 'Jyske Bank (Gibraltar) Ltd',
-      area: 'Regal House, Queensway',
-      salaryLow: 42000,
-      salaryHigh: 58000,
-      salary: '£42,000 – £58,000',
+      title: 'Private Client Executive',
+      employer: 'A Line Wall Road private bank',
+      area: 'Line Wall Road',
+      pay: '£40,000 – £55,000',
       type: 'Full-time',
-      source: 'RecruitGibraltar',
       emoji: '🏦',
-      shortDesc: 'Manage a portfolio of high-net-worth private banking clients, providing tailored investment and banking solutions from our Gibraltar office.',
-      fullDesc: 'Jyske Bank (Gibraltar) Ltd is a licensed deposit-taking institution regulated by the GFSC. Our Private Banking division serves international HNW and UHNW clients with a strong connection to the Iberian Peninsula and beyond. We are looking for an experienced Private Client Manager who is fluent in English (Spanish an advantage) and holds a relevant qualification (CISI or equivalent). Responsibilities include portfolio review meetings, onboarding new clients under our KYC/AML procedures, and co-ordinating with our Copenhagen head office on product structuring. This is a relationship-driven role requiring discretion and commercial acumen. Salary includes discretionary bonus and private medical cover.',
+      shortDesc: 'Look after international private-banking clients — onboarding, KYC and portfolio reviews for a GFSC-regulated bank.',
+      fullDesc: 'Private banking is one of Gibraltar’s anchor trades. A role like this covers managing a book of international clients, running onboarding under KYC/AML procedures, preparing portfolio reviews and co-ordinating with a European head office. Employers typically look for a CISI-style qualification and fluent English, with Spanish a strong advantage for cross-border clients.',
     },
     {
-      id: 'j3',
+      id: 'ex3',
       sector: 'Insurance',
-      title: 'Underwriting Analyst — Marine & Specialty',
-      employer: 'Gibb & Co Insurance Managers',
-      area: 'Main Street',
-      salaryLow: 32000,
-      salaryHigh: 40000,
-      salary: '£32,000 – £40,000',
+      title: 'Underwriting Analyst',
+      employer: 'A Europort insurance group',
+      area: 'Europort',
+      pay: '£32,000 – £40,000',
       type: 'Full-time',
-      source: 'RecruitGibraltar',
       emoji: '📋',
-      shortDesc: "Support senior underwriters on marine, cargo and specialty lines for an established Gibraltar-based insurance management firm.",
-      fullDesc: "Gibb & Co Insurance Managers is a Gibraltar-based captive management and MGA business with Lloyd’s market connections. The Underwriting Analyst will assist in pricing Marine Hull, Cargo and Specialty lines, maintain underwriting data in our MGA platform, prepare bordereaux and liaise with reinsurers and Lloyd’s syndicates. The ideal candidate holds or is studying towards an ACII qualification and has at least two years in a London or Gibraltar market role. The Main Street office offers a collaborative team with regular travel to London for market visits. Benefits include study support, 25 days leave and a competitive pension.",
+      shortDesc: 'Support senior underwriters on motor and specialty lines at one of the many insurers based around Europort.',
+      fullDesc: 'Gibraltar writes a large share of UK motor insurance, and Europort is full of underwriting teams. An analyst role like this involves pricing support, maintaining underwriting data, preparing bordereaux and liaising with reinsurers. Employers often fund ACII study and look for one to two years of market experience.',
     },
     {
-      id: 'j4',
+      id: 'ex4',
       sector: 'Shipping',
       title: 'Port Operations Co-ordinator',
-      employer: 'SteelRock Bunkers & Shipping Agency',
+      employer: 'A Gibraltar Harbour bunkering agency',
       area: 'North Mole, Gibraltar Harbour',
-      salaryLow: 28000,
-      salaryHigh: 36000,
-      salary: '£28,000 – £36,000',
+      pay: '£28,000 – £36,000',
       type: 'Full-time',
-      source: 'GiBoard / Direct',
       emoji: '⚓',
-      shortDesc: "Co-ordinate vessel calls, bunkering operations and port agency services for one of Gibraltar’s active ship chandlers and bunkering agents.",
-      fullDesc: "SteelRock Bunkers & Shipping Agency provides port agency, ship chandlery and marine fuel (bunkering) services to vessels transiting the Strait of Gibraltar — one of the world’s busiest shipping lanes. The Port Operations Co-ordinator manages vessel pre-arrival documentation, co-ordinates with the Gibraltar Port Authority and British Forces, arranges crew changes and medical evacuations, and oversees bunker delivery scheduling with our fuel suppliers. The role involves on-call weekend cover on a rota basis. Experience in shipping, port operations or logistics is preferred. Knowledge of Veson IMOS or similar maritime software a plus.",
+      shortDesc: 'Co-ordinate vessel calls, crew changes and bunker deliveries in one of the world’s busiest refuelling ports.',
+      fullDesc: 'The Strait makes Gibraltar a major bunkering and ship-agency hub. This kind of role covers vessel pre-arrival paperwork, co-ordination with the Gibraltar Port Authority, crew changes and bunker delivery scheduling — usually with on-call weekend cover on a rota. Shipping, port or logistics experience is the normal ask.',
     },
     {
-      id: 'j5',
+      id: 'ex5',
       sector: 'Legal',
-      title: 'Solicitor — Corporate & Commercial',
-      employer: 'Isolas LLP',
-      area: 'Portland House, Glacis Road',
-      salaryLow: 45000,
-      salaryHigh: 62000,
-      salary: '£45,000 – £62,000',
-      type: 'Full-time',
-      source: 'Direct',
-      emoji: '⚖️',
-      shortDesc: "Join Gibraltar’s leading independent law firm advising on corporate transactions, fund structuring and gaming regulatory matters.",
-      fullDesc: "Isolas LLP is one of Gibraltar’s largest and most respected law firms, with offices in Portland House and a strong international client base across gaming, financial services and property. We are seeking a qualified Solicitor (England & Wales or Gibraltar admitted) with 2–5 years PQE in corporate and commercial law. You will advise on M&A transactions, fund formations, shareholder agreements and gaming licensing applications. The role includes drafting commercial contracts, conducting due diligence and attending client meetings. Fluency in English is essential; Spanish is advantageous for cross-border matters. The firm offers a competitive salary, bonus scheme and a genuine partnership track.",
-    },
-    {
-      id: 'j6',
-      sector: 'Healthcare',
-      title: 'Staff Nurse — Accident & Emergency',
-      employer: 'Gibraltar Health Authority (GHA)',
-      area: "St Bernard’s Hospital, Europort",
-      salaryLow: 31000,
-      salaryHigh: 41000,
-      salary: '£31,000 – £41,000',
-      type: 'Full-time',
-      source: 'GHA / gov.gi/vacancies',
-      emoji: '🏥',
-      shortDesc: "Provide high-quality nursing care in the A&E department of Gibraltar’s main acute hospital under the Gibraltar Health Authority.",
-      fullDesc: "The Gibraltar Health Authority (GHA) is seeking a registered Staff Nurse for the Accident & Emergency Department at St Bernard’s Hospital, Gibraltar’s primary acute care facility. You will triage patients, deliver evidence-based nursing interventions and work within a multidisciplinary team of doctors, paramedics and allied health professionals. You must hold a valid NMC (or equivalent EU/overseas) nursing registration and have at least 12 months post-registration experience in an acute or emergency setting. GHA offers relocation support for candidates from the UK or EU, GHA pension scheme, and access to continuing professional development. Applications are processed via the Government of Gibraltar recruitment portal at gov.gi/vacancies.",
-    },
-    {
-      id: 'j7',
-      sector: 'Civil Service',
-      title: 'Policy & Research Officer',
-      employer: 'HM Government of Gibraltar',
-      area: '6 Convent Place, Gibraltar',
-      salaryLow: 27000,
-      salaryHigh: 35000,
-      salary: '£27,000 – £35,000',
-      type: 'Full-time',
-      source: 'gov.gi/vacancies',
-      emoji: '🏙️',
-      shortDesc: "Support Ministers and senior officials with policy analysis, briefing papers and research across Government of Gibraltar departments.",
-      fullDesc: "HM Government of Gibraltar is recruiting a Policy & Research Officer within the Chief Minister’s Office to support cross-departmental policy development. The post-holder will draft briefing notes and Cabinet papers, conduct desktop and stakeholder research on issues including housing, economic development and EU-UK-Gibraltar relations, and co-ordinate responses to public consultations. A degree in law, economics, political science or a related field is required. Experience in a public-sector, think-tank or parliamentary environment is desirable. The role is based in the historic Convent Place complex adjacent to the Governor’s residence. Salary is benchmarked on the Gibraltar Civil Service pay scale with pensionable service from day one.",
-    },
-    {
-      id: 'j8',
-      sector: 'Hospitality',
-      title: 'Restaurant Supervisor — Marina',
-      employer: 'The Landings at Queensway Quay',
-      area: 'Queensway Quay Marina',
-      salaryLow: 22000,
-      salaryHigh: 28000,
-      salary: '£22,000 – £28,000',
-      type: 'Full-time',
-      source: 'Direct',
-      emoji: '🍽️',
-      shortDesc: "Supervise front-of-house operations at one of Gibraltar’s most popular waterfront restaurants on Queensway Quay Marina.",
-      fullDesc: "The Landings is a well-known al fresco Mediterranean restaurant on the terrace of Queensway Quay Marina, popular with locals and visiting yacht crews alike. We are recruiting a Restaurant Supervisor to manage a team of 6–8 servers, ensure consistently high service standards, handle reservations via OpenTable and liaise with the head chef on menu changes and allergen compliance. The ideal candidate has at least two years’ supervisory experience in a busy restaurant environment and holds a Level 2 Food Hygiene certificate. Tronc tips included; meals on shift; staff discount at the marina. We are particularly keen to hear from candidates with conversational Spanish for our many Spanish-resident guests.",
-    },
-    {
-      id: 'j9',
-      sector: 'Retail',
-      title: 'Retail Sales Advisor — Electronics',
-      employer: "Murchison’s Electrical & Tech",
+      title: 'Corporate & Commercial Solicitor',
+      employer: 'A Main Street law firm',
       area: 'Main Street',
-      salaryLow: 20000,
-      salaryHigh: 25000,
-      salary: '£20,000 – £25,000',
+      pay: '£45,000 – £60,000',
       type: 'Full-time',
-      source: 'GiBoard / Direct',
+      emoji: '⚖️',
+      shortDesc: 'Advise on company, funds and gaming-licensing work at an established Gibraltar practice.',
+      fullDesc: 'Gibraltar’s law firms serve gaming, financial-services and property clients far beyond the Rock. A mid-level corporate role typically asks for an England & Wales or Gibraltar-admitted solicitor with 2–5 years PQE, covering M&A, fund formations, shareholder agreements and licensing applications. Spanish helps with cross-border matters.',
+    },
+    {
+      id: 'ex6',
+      sector: 'Healthcare',
+      title: 'Registered Nurse',
+      employer: 'A private healthcare clinic',
+      area: 'Midtown',
+      pay: '£30,000 – £38,000',
+      type: 'Part-time',
+      emoji: '🏥',
+      shortDesc: 'Clinic nursing on the Rock — assessments, screening and minor procedures for a private practice.',
+      fullDesc: 'Beyond the GHA, Gibraltar has private clinics and occupational-health providers that recruit registered nurses. Roles like this cover patient assessments, vaccinations, screening programmes and assisting with minor procedures. An NMC (or equivalent) registration is essential. For public-sector nursing posts, see the gov.gi vacancies link on the Jobs board — the GHA recruits there.',
+    },
+    {
+      id: 'ex7',
+      sector: 'Hospitality',
+      title: 'Restaurant Supervisor',
+      employer: 'A Queensway marina restaurant',
+      area: 'Queensway Quay Marina',
+      pay: '£24,000 – £28,000 + tronc',
+      type: 'Full-time',
+      emoji: '🍽️',
+      shortDesc: 'Run front-of-house at a waterfront terrace — rotas, reservations and a team of six to eight servers.',
+      fullDesc: 'Marina dining is a Gibraltar staple and supervisors are in steady demand. Expect to manage a small front-of-house team, handle reservations, liaise with the kitchen on menus and allergens, and keep service sharp through the summer terrace season. Conversational Spanish is a big plus with visiting yacht crews and cross-border guests; tips usually come via tronc.',
+    },
+    {
+      id: 'ex8',
+      sector: 'Retail',
+      title: 'Retail Sales Advisor',
+      employer: 'A Main Street electronics retailer',
+      area: 'Main Street',
+      pay: '£20,000 – £24,000',
+      type: 'Full-time',
       emoji: '🛍️',
-      shortDesc: "Advise customers on consumer electronics, appliances and tech accessories in Gibraltar’s iconic Main Street duty-free retail environment.",
-      fullDesc: "Murchison’s Electrical & Tech is a long-established Main Street retailer taking advantage of Gibraltar’s duty-free and low-VAT status to offer competitive pricing on consumer electronics, home appliances and audio equipment. We are looking for a motivated Retail Sales Advisor who enjoys technology and is comfortable advising customers — many of whom are visiting from Spain or aboard cruise ships — on products ranging from smartphones and laptops to kitchen appliances. Bilingual English/Spanish preferred (the majority of our walk-in trade speaks Spanish). Training on point-of-sale systems and stock management provided. Saturday working is required; Sunday optional with enhanced pay rate.",
+      shortDesc: 'Sell duty-free tech to locals, cruise visitors and day-trippers on Gibraltar’s high street.',
+      fullDesc: 'Main Street retail runs on Gibraltar’s VAT-free pricing and cruise-ship footfall. Advisors demo phones, audio and appliances, handle point-of-sale and stock, and switch between English and Spanish all day. Saturday working is standard; Sundays are often optional at an enhanced rate.',
     },
   ];
 
-  var SECTORS = ['All', 'iGaming', 'Finance', 'Insurance', 'Shipping', 'Legal', 'Healthcare', 'Civil Service', 'Hospitality', 'Retail'];
-
-  // Sector items for RW.ui.chips
-  var SECTOR_ITEMS = SECTORS.map(function (s) { return { label: s, value: s }; });
-
-  // In-memory filter state (not persisted — resets on navigation)
+  // ---- In-memory UI state (resets on reload, like other feature filters) ----
   var activeSector = 'All';
+  var formOpen = false;
+  var formSector = '';
 
-  function filteredJobs() {
-    if (activeSector === 'All') return JOBS;
-    return JOBS.filter(function (j) { return j.sector === activeSector; });
+  function posts() { return RW.S.jobPosts = RW.S.jobPosts || []; }
+
+  function visiblePosts() {
+    var arr = posts().slice().sort(function (a, b) { return b.t - a.t; });
+    if (activeSector === 'All') return arr;
+    return arr.filter(function (p) { return p.sector === activeSector; });
   }
 
-  function hasApplied(jobId) {
-    return (RW.S.jobApps || []).some(function (a) { return a.jobId === jobId; });
+  function visibleExamples() {
+    if (activeSector === 'All') return EXAMPLES;
+    return EXAMPLES.filter(function (j) { return j.sector === activeSector; });
   }
 
-  // Pill for contract type
-  function typePill(type) {
-    var cls = type === 'Part-time' ? 'warn' : type === 'Contract' ? 'info' : 'neutral';
-    return '<span class="pill-status ' + cls + '" style="font-size:11px">' + esc(type) + '</span>';
+  function findJob(id) {
+    var p = posts().filter(function (x) { return x.id === id; })[0];
+    if (p) return { kind: 'post', job: p };
+    var j = EXAMPLES.filter(function (x) { return x.id === id; })[0];
+    return j ? { kind: 'example', job: j } : null;
   }
 
-  // Salary display with .num span, no undefined/NaN risk
-  function salarySpan(j) {
-    if (!j.salary) return '';
-    return '<span class="num" style="font-size:12px;font-weight:700;color:var(--ink)">' + esc(j.salary) + '</span>';
+  // Relative age for the user's own adverts ("3 days ago")
+  function ago(t) {
+    var m = Math.max(1, Math.round((Date.now() - t) / 60000));
+    if (m < 60) return m + 'm ago';
+    var h = Math.round(m / 60);
+    if (h < 24) return h + 'h ago';
+    var d = Math.round(h / 24);
+    return d <= 1 ? 'yesterday' : d + ' days ago';
+  }
+
+  // Pay text with .num only when it actually contains figures
+  function paySpan(pay) {
+    if (!pay) return '';
+    var cls = /\d/.test(pay) ? ' class="num"' : '';
+    return '<span' + cls + ' style="font-size:12px;font-weight:700;color:var(--ink)">' + esc(pay) + '</span>';
+  }
+
+  function contactHref(contact) {
+    var c = String(contact || '').trim();
+    if (c.indexOf('@') > -1) return 'mailto:' + c;
+    return 'tel:' + c.replace(/[^+\d]/g, '');
+  }
+
+  function teaser(s) {
+    s = String(s == null ? '' : s);
+    return s.length > 150 ? esc(s.slice(0, 150)) + '…' : esc(s);
+  }
+
+  // ---- Shared card scaffolding ----
+  function jobCard(opts) {
+    return '<div class="card" style="margin-bottom:12px;cursor:pointer" data-act="nav" data-route="' + esc('#/jobs/' + opts.id) + '">' +
+      '<div class="row" style="padding:0;border:0;align-items:flex-start">' +
+        '<div class="lead" style="font-size:26px;background:#e7e9ee;border-radius:10px;margin-top:2px">' + opts.emoji + '</div>' +
+        '<div class="body">' +
+          '<div class="name" style="font-size:15px;font-weight:800;line-height:1.25">' + esc(opts.title) + '</div>' +
+          '<div class="sub" style="margin-top:2px;font-weight:600">' + esc(opts.employer) + '</div>' +
+          '<div class="sub" style="font-size:11.5px;margin-top:1px">📍 ' + esc(opts.area) + '</div>' +
+        '</div>' +
+        '<div class="trail" style="text-align:right;padding-top:2px">' + opts.badge + '</div>' +
+      '</div>' +
+      '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
+        paySpan(opts.pay) +
+        '<span class="chip" style="font-size:11px">' + esc(opts.sector) + '</span>' +
+        (opts.type ? '<span class="chip" style="font-size:11px">' + esc(opts.type) + '</span>' : '') +
+      '</div>' +
+      '<div class="subtle" style="margin-top:8px;line-height:1.45;font-size:12.5px">' + opts.teaser + '</div>' +
+    '</div>';
+  }
+
+  function postCard(p) {
+    return jobCard({
+      id: p.id,
+      emoji: SECTOR_EMOJI[p.sector] || '💼',
+      title: p.title,
+      employer: p.company,
+      area: p.area,
+      pay: p.pay,
+      sector: p.sector,
+      type: '',
+      badge: '<span class="pill-status info" style="font-size:11px">Community post</span>',
+      teaser: teaser(p.desc),
+    });
+  }
+
+  function exampleCard(j) {
+    return jobCard({
+      id: j.id,
+      emoji: j.emoji,
+      title: j.title,
+      employer: j.employer,
+      area: j.area,
+      pay: j.pay,
+      sector: j.sector,
+      type: j.type,
+      badge: '<span class="pill-status neutral" style="font-size:11px">Example</span>',
+      teaser: esc(j.shortDesc),
+    });
+  }
+
+  // ---- Post-a-vacancy card (collapsed CTA ⇄ small form) ----
+  function postVacancyCard() {
+    if (!formOpen) {
+      return '<div class="card" style="margin-bottom:14px">' +
+        '<div style="font-size:15px;font-weight:800">Post a vacancy — free during launch</div>' +
+        '<div class="subtle" style="margin-top:4px;line-height:1.5">Hiring on the Rock? Put your advert in front of Rockway users in under a minute. Adverts save to this device while Rockway is in launch preview.</div>' +
+        '<button class="btn" style="margin-top:12px" data-act="jobsToggleForm">Post a vacancy</button>' +
+      '</div>';
+    }
+
+    var areaOptions = AREAS.map(function (a) {
+      return '<option value="' + esc(a) + '">' + esc(a) + '</option>';
+    }).join('');
+
+    var sectorChips = RW.ui.chips(SECTOR_ITEMS, formSector, 'jobsFormSector', false);
+
+    return '<div class="card" style="margin-bottom:14px">' +
+      '<div style="font-size:15px;font-weight:800">Post a vacancy — free during launch</div>' +
+      '<label class="fld">Role title</label>' +
+      '<input class="input" id="jobs-f-title" placeholder="e.g. Customer Support Agent" autocomplete="off">' +
+      '<label class="fld">Company / employer</label>' +
+      '<input class="input" id="jobs-f-company" placeholder="Your business name" autocomplete="off">' +
+      '<label class="fld">Area</label>' +
+      '<select class="input" id="jobs-f-area">' + areaOptions + '</select>' +
+      '<label class="fld">Sector</label>' +
+      sectorChips +
+      '<label class="fld">Pay (optional)</label>' +
+      '<input class="input" id="jobs-f-pay" placeholder="e.g. £26,000 – £30,000 or £11.50/hr" autocomplete="off">' +
+      '<label class="fld">Contact email or phone</label>' +
+      '<input class="input" id="jobs-f-contact" placeholder="jobs@yourfirm.gi or +350 200 12345" autocomplete="off">' +
+      '<label class="fld">Description (one paragraph)</label>' +
+      '<textarea class="input" id="jobs-f-desc" rows="4" placeholder="What the role involves, hours, experience needed…" style="resize:vertical;min-height:84px"></textarea>' +
+      '<button class="btn" style="margin-top:14px" data-act="jobsPost">Post vacancy</button>' +
+      '<button class="btn ghost" style="margin-top:8px" data-act="jobsToggleForm">Cancel</button>' +
+    '</div>';
+  }
+
+  // ---- "Where Gibraltar really hires" — honest link-outs, not fake listings ----
+  function channelsCard() {
+    return RW.ui.sectionTitle('Where Gibraltar really hires') +
+      '<div class="card" style="margin-bottom:14px">' +
+        '<div class="subtle" style="line-height:1.5">Most live vacancies on the Rock are advertised on these channels — Rockway links out rather than reposting them.</div>' +
+        '<div class="chips" style="margin-top:10px;margin-bottom:0">' +
+          '<a class="chip" href="https://www.gibraltar.gov.gi/vacancies" target="_blank" rel="noopener" style="text-decoration:none">🏛️ gov.gi vacancies ↗</a>' +
+          '<a class="chip" href="https://www.recruitgibraltar.com" target="_blank" rel="noopener" style="text-decoration:none">🧭 RecruitGibraltar ↗</a>' +
+        '</div>' +
+        '<div class="subtle" style="margin-top:8px;font-size:11.5px">Civil service &amp; GHA posts go through gov.gi; agency roles in gaming, finance, insurance &amp; IT through RecruitGibraltar.</div>' +
+      '</div>';
   }
 
   // ---- List screen ----
   function list() {
-    var visible = filteredJobs();
+    var myPosts = visiblePosts();
+    var examples = visibleExamples();
+    var total = myPosts.length + examples.length;
 
-    // RW.ui.chips handles tap/on/brand classes automatically
-    var filterChips = RW.ui.chips(SECTOR_ITEMS, activeSector, 'jobsFilter', true);
+    var filterChips = RW.ui.chips(FILTER_ITEMS, activeSector, 'jobsFilter', true);
 
     var countLabel = activeSector === 'All'
-      ? 'All Vacancies (' + visible.length + ')'
-      : esc(activeSector) + ' (' + visible.length + ')';
+      ? 'On the board (' + total + ')'
+      : activeSector + ' (' + total + ')';
 
-    var jobCards = visible.length
-      ? visible.map(function (j) {
-          var applied = hasApplied(j.id);
-          return '<div class="card" style="margin-bottom:12px;cursor:pointer" data-act="nav" data-route="' + esc('#/jobs/' + j.id) + '">' +
-            '<div class="row" style="padding:0;border:0;align-items:flex-start">' +
-              '<div class="lead" style="font-size:26px;background:#e7e9ee;border-radius:10px;margin-top:2px">' + j.emoji + '</div>' +
-              '<div class="body">' +
-                '<div class="name" style="font-size:15px;font-weight:800;line-height:1.25">' + esc(j.title) + '</div>' +
-                '<div class="sub" style="margin-top:2px;font-weight:600">' + esc(j.employer) + '</div>' +
-                '<div class="sub" style="font-size:11.5px;margin-top:1px">📍 ' + esc(j.area) + '</div>' +
-              '</div>' +
-              '<div class="trail" style="text-align:right;padding-top:2px">' +
-                (applied ? '<span class="pill-status ok" style="font-size:11px">Applied ✓</span>' : '') +
-              '</div>' +
-            '</div>' +
-            '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
-              salarySpan(j) +
-              typePill(j.type) +
-              '<span class="chip" style="font-size:11px">' + esc(j.sector) + '</span>' +
-            '</div>' +
-            '<div class="subtle" style="margin-top:8px;line-height:1.45;font-size:12.5px">' + esc(j.shortDesc) + '</div>' +
-          '</div>';
-        }).join('')
-      : RW.ui.empty('🔍', 'No vacancies in this sector right now. Try a different filter.');
-
-    // Applications section
-    var appsArr = RW.S.jobApps || [];
-    var appsSection = '';
-    if (appsArr.length) {
-      var appRows = appsArr.slice().reverse().map(function (a) {
-        var statusCls = a.status === 'Applied' ? 'ok' : a.status === 'Interview' ? 'info' : 'warn';
-        return RW.ui.row({
-          lead: '💼',
-          leadBg: '#e7e9ee',
-          name: a.title,
-          sub: esc(a.employer) + ' · ' + fmtTime(a.t),
-          trail: '<span class="pill-status ' + statusCls + '" style="font-size:11px">' + esc(a.status) + '</span>',
-        });
-      }).join('');
-      appsSection =
-        RW.ui.sectionTitle('Your Applications (' + appsArr.length + ')') +
-        '<div class="card">' + appRows + '</div>';
-    } else {
-      appsSection =
-        RW.ui.sectionTitle('Your Applications') +
-        RW.ui.empty('📎', 'No applications yet. Tap a job to apply.');
+    var feed = myPosts.map(postCard).join('') + examples.map(exampleCard).join('');
+    if (!total) {
+      feed = RW.ui.empty('💼', 'Nothing posted in ' + esc(activeSector) + ' yet — be the first, or try the gov.gi and RecruitGibraltar links above.');
     }
 
     var body =
-      '<div class="subtle" style="margin-bottom:10px">' +
-        'Live vacancies across Gibraltar — iGaming, Finance, Public Sector & more' +
-      '</div>' +
+      '<div class="subtle" style="margin-bottom:10px;line-height:1.5">Gibraltar’s community job board. Grey “Example” cards are illustrations, not real adverts — real employers post free during launch.</div>' +
+      postVacancyCard() +
+      channelsCard() +
       filterChips +
       RW.ui.sectionTitle(countLabel) +
-      jobCards +
-      appsSection;
+      feed;
 
     return RW.ui.screen({ title: 'Jobs', body: body });
   }
 
-  // ---- Detail screen ----
+  // ---- Detail screens ----
   function detail(jobId) {
-    var j = JOBS.filter(function (x) { return x.id === jobId; })[0];
-    if (!j) return list();
+    var found = findJob(jobId);
+    if (!found) return list();
+    return found.kind === 'post' ? postDetail(found.job) : exampleDetail(found.job);
+  }
 
-    var applied = hasApplied(j.id);
-    var accent = SECTOR_ACCENT[j.sector] || '#2c3e50';
-
-    // Build the hero using RW.ui.hero
+  function exampleDetail(j) {
     var heroEl = RW.ui.hero({
       emoji: j.emoji,
       title: j.title,
       sub: j.employer + ' · ' + j.area,
-      accent: accent,
-      chips: [j.sector, j.type],
+      accent: '#3a4150',
+      chips: [j.sector, j.type, 'Example'],
     });
 
-    // Quick-stats grid
     var statsGrid =
       '<div class="grid2" style="margin-bottom:14px">' +
-        '<div class="stat">' +
-          '<div class="n num" style="font-size:17px">' + esc(j.salary) + '</div>' +
-          '<div class="l">Salary</div>' +
-        '</div>' +
-        '<div class="stat">' +
-          '<div class="n" style="font-size:17px">' + esc(j.type) + '</div>' +
-          '<div class="l">Contract</div>' +
-        '</div>' +
+        '<div class="stat"><div class="n num" style="font-size:15px">' + esc(j.pay) + '</div><div class="l">Typical pay</div></div>' +
+        '<div class="stat"><div class="n" style="font-size:15px">' + esc(j.type) + '</div><div class="l">Contract</div></div>' +
       '</div>';
 
     var kvRows =
       '<div class="kv"><span>Employer</span><span>' + esc(j.employer) + '</span></div>' +
       '<div class="kv"><span>Location</span><span>📍 ' + esc(j.area) + '</span></div>' +
-      '<div class="kv"><span>Salary</span><span class="num">' + esc(j.salary) + '</span></div>' +
       '<div class="kv"><span>Sector</span><span>' + esc(j.sector) + '</span></div>' +
-      '<div class="kv"><span>Source</span><span>' + esc(j.source) + '</span></div>';
+      '<div class="kv"><span>Status</span><span><span class="pill-status neutral" style="font-size:11px">Example</span></span></div>';
 
-    var appliedBanner = applied
-      ? '<div class="card" style="margin-bottom:14px;background:#f0faf3;border:1.5px solid #b2dfcc">' +
-          '<div style="font-size:15px;font-weight:700;color:var(--green)">Application Submitted ✓</div>' +
-          '<div class="subtle" style="margin-top:4px">We’ve recorded your interest. Check Your Applications on the Jobs board.</div>' +
-        '</div>'
-      : '';
-
-    var applyBtn = applied
-      ? '<button class="btn ghost" style="width:100%;opacity:0.6;cursor:not-allowed" disabled>Applied ✓</button>'
-      : '<button class="btn" style="width:100%" data-act="jobsApply" data-job-id="' + esc(j.id) + '">' +
-          'Apply →' +
-        '</button>';
+    var exampleNote =
+      '<div class="card" style="margin-bottom:14px">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+          '<span class="pill-status neutral" style="font-size:11px">Example</span>' +
+          '<span style="font-weight:700;font-size:13.5px">This is an example listing</span>' +
+        '</div>' +
+        '<div class="subtle" style="margin-top:6px;line-height:1.5">It shows what a vacancy looks like on Rockway. No real employer is behind it, so it can’t be applied to.</div>' +
+      '</div>';
 
     var body =
       statsGrid +
       '<div class="card" style="margin-bottom:14px">' + kvRows + '</div>' +
-      RW.ui.sectionTitle('About This Role') +
+      RW.ui.sectionTitle('About roles like this') +
       '<div class="card" style="margin-bottom:14px">' +
         '<div style="line-height:1.65;font-size:13.5px">' + esc(j.fullDesc) + '</div>' +
       '</div>' +
-      appliedBanner +
-      applyBtn;
+      exampleNote +
+      '<button class="btn ghost" style="width:100%" disabled>Apply</button>' +
+      '<div class="subtle" style="text-align:center;margin-top:8px">Example listing — real employers can post free during launch</div>' +
+      '<button class="btn" style="width:100%;margin-top:12px" data-act="jobsGoPost">Post a vacancy — free during launch</button>';
 
     return RW.ui.screen({ title: j.title, hero: heroEl, body: body, plain: true });
+  }
+
+  function postDetail(p) {
+    var heroEl = RW.ui.hero({
+      emoji: SECTOR_EMOJI[p.sector] || '💼',
+      title: p.title,
+      sub: p.company + ' · ' + p.area,
+      accent: '#3a4150',
+      chips: [p.sector, 'Community post'],
+    });
+
+    var statsGrid =
+      '<div class="grid2" style="margin-bottom:14px">' +
+        '<div class="stat"><div class="n' + (p.pay && /\d/.test(p.pay) ? ' num' : '') + '" style="font-size:15px">' + (p.pay ? esc(p.pay) : 'On application') + '</div><div class="l">Pay</div></div>' +
+        '<div class="stat"><div class="n num" style="font-size:15px">' + esc(ago(p.t)) + '</div><div class="l">Posted</div></div>' +
+      '</div>';
+
+    var kvRows =
+      '<div class="kv"><span>Company</span><span>' + esc(p.company) + '</span></div>' +
+      '<div class="kv"><span>Location</span><span>📍 ' + esc(p.area) + '</span></div>' +
+      '<div class="kv"><span>Sector</span><span>' + esc(p.sector) + '</span></div>' +
+      (p.pay ? '<div class="kv"><span>Pay</span><span class="num">' + esc(p.pay) + '</span></div>' : '') +
+      '<div class="kv"><span>Contact</span><span>' + esc(p.contact) + '</span></div>' +
+      '<div class="kv"><span>Posted</span><span class="num">' + esc(fmtTime(p.t)) + '</span></div>';
+
+    var body =
+      statsGrid +
+      '<div class="card" style="margin-bottom:14px">' + kvRows + '</div>' +
+      RW.ui.sectionTitle('About this role') +
+      '<div class="card" style="margin-bottom:14px">' +
+        '<div style="line-height:1.65;font-size:13.5px">' + esc(p.desc) + '</div>' +
+      '</div>' +
+      '<a class="btn" style="width:100%;text-decoration:none" href="' + esc(contactHref(p.contact)) + '">Contact — ' + esc(p.contact) + '</a>' +
+      '<div class="subtle" style="text-align:center;margin-top:8px">Community post · contact the poster directly</div>' +
+      '<button class="btn ghost" style="width:100%;margin-top:12px" data-act="jobsDelete" data-id="' + esc(p.id) + '">Remove your advert</button>';
+
+    return RW.ui.screen({ title: p.title, hero: heroEl, body: body, plain: true });
   }
 
   // ---- render dispatcher ----
@@ -327,19 +399,18 @@
     return jobId ? detail(jobId) : list();
   }
 
-  // ---- Activity feed ----
+  // ---- Activity feed: the user's own adverts ----
   RW.registerActivity(function () {
-    return (RW.S.jobApps || []).map(function (a) {
-      var statusCls = a.status === 'Applied' ? 'ok' : a.status === 'Interview' ? 'info' : 'warn';
+    return (RW.S.jobPosts || []).map(function (p) {
       return {
-        t: a.t,
-        html: '<div class="card row">' +
+        t: p.t,
+        html: '<div class="card row" data-act="nav" data-route="' + esc('#/jobs/' + p.id) + '" style="cursor:pointer">' +
           '<div class="lead">💼</div>' +
           '<div class="body">' +
-            '<div class="name">' + esc(a.title) + '</div>' +
-            '<div class="sub">' + esc(a.employer) + ' · ' + fmtTime(a.t) + '</div>' +
+            '<div class="name">' + esc(p.title) + '</div>' +
+            '<div class="sub">Your advert · ' + esc(ago(p.t)) + '</div>' +
           '</div>' +
-          '<div class="trail"><span class="pill-status ' + statusCls + '">' + esc(a.status) + '</span></div>' +
+          '<div class="trail"><span class="pill-status ok">Posted</span></div>' +
         '</div>',
       };
     });
@@ -355,37 +426,89 @@
     order: 30,
     render: render,
     actions: {
-      // Filter chips: update in-memory filter and re-render
+      // Sector filter chips on the board
       jobsFilter: function (el) {
-        var sector = el.dataset.v || 'All';
-        activeSector = sector;
+        activeSector = el.dataset.v || 'All';
         RW.render();
       },
 
-      // Apply to a job: record application, save, toast, re-render
-      jobsApply: function (el) {
-        var jobId = el.dataset.jobId;
-        var j = JOBS.filter(function (x) { return x.id === jobId; })[0];
-        if (!j) return;
+      // Open/close the post-a-vacancy form
+      jobsToggleForm: function () {
+        formOpen = !formOpen;
+        RW.render();
+      },
 
-        RW.S.jobApps = RW.S.jobApps || [];
+      // Jump to the board with the form open (from example detail screens)
+      jobsGoPost: function () {
+        formOpen = true;
+        if ((location.hash || '') === '#/jobs') RW.render();
+        else RW.go('#/jobs');
+      },
 
-        // Prevent duplicate applications
-        if (hasApplied(jobId)) {
-          RW.toast('You have already applied for ' + j.title + '.');
-          return;
+      // Sector chips inside the form: toggle in place WITHOUT re-rendering,
+      // so typed input isn't lost.
+      jobsFormSector: function (el) {
+        formSector = el.dataset.v || '';
+        var wrap = el.parentElement;
+        if (wrap) {
+          var chips = wrap.querySelectorAll('.chip');
+          for (var i = 0; i < chips.length; i++) chips[i].classList.remove('on');
         }
+        el.classList.add('on');
+      },
 
-        RW.S.jobApps.push({
-          id: uid(),
+      // Post a vacancy → RW.S.jobPosts
+      jobsPost: function () {
+        RW.S.jobPosts = RW.S.jobPosts || [];
+
+        var titleEl = document.getElementById('jobs-f-title');
+        var companyEl = document.getElementById('jobs-f-company');
+        var areaEl = document.getElementById('jobs-f-area');
+        var payEl = document.getElementById('jobs-f-pay');
+        var contactEl = document.getElementById('jobs-f-contact');
+        var descEl = document.getElementById('jobs-f-desc');
+        if (!titleEl || !companyEl || !areaEl || !contactEl || !descEl) return;
+
+        var title = titleEl.value.trim();
+        var company = companyEl.value.trim();
+        var area = areaEl.value.trim() || 'Anywhere on the Rock';
+        var pay = (payEl && payEl.value.trim()) || '';
+        var contact = contactEl.value.trim();
+        var desc = descEl.value.trim();
+
+        if (!title) { RW.toast('Add the role title.'); return; }
+        if (!company) { RW.toast('Add your company or employer name.'); return; }
+        if (!formSector) { RW.toast('Pick a sector for the role.'); return; }
+        if (!contact) { RW.toast('Add a contact email or phone so applicants can reach you.'); return; }
+        if (contact.indexOf('@') === -1 && !/\d/.test(contact)) { RW.toast('That contact doesn’t look like an email or phone number.'); return; }
+        if (!desc) { RW.toast('Add a one-paragraph description of the role.'); return; }
+
+        RW.S.jobPosts.push({
+          id: 'up-' + uid(),
           t: Date.now(),
-          jobId: j.id,
-          title: j.title,
-          employer: j.employer,
-          status: 'Applied',
+          title: title,
+          company: company,
+          area: area,
+          sector: formSector,
+          pay: pay,
+          contact: contact,
+          desc: desc,
         });
         RW.store.save();
-        RW.toast('Application submitted – ' + j.employer + ' will be in touch.');
+        formOpen = false;
+        formSector = '';
+        RW.toast('Your advert is on the board — saved on this device during launch preview.');
+        RW.render();
+      },
+
+      // The poster can remove their own advert
+      jobsDelete: function (el) {
+        var id = el.dataset.id;
+        if (!id) return;
+        RW.S.jobPosts = (RW.S.jobPosts || []).filter(function (p) { return p.id !== id; });
+        RW.store.save();
+        RW.toast('Advert removed from the board.');
+        RW.go('#/jobs');
         RW.render();
       },
     },
