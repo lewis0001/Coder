@@ -22,6 +22,10 @@
     // marketplace spine: discover & book local businesses + the business side
     'src/features/discover.js',
     'src/features/business.js',
+    // live territory signals (consume /api/* via RW.live with seed fallbacks)
+    'src/features/weather.js',    // live Rock weather, Levanter meter, sea & tides
+    'src/features/runway.js',     // flight schedule → runway-closure countdown
+    'src/features/briefing.js',   // "Today on the Rock" composed morning card
     // automatable local features
     'src/features/frontier.js',   // live cameras + community crowd-reports
     'src/features/marketplace.js',

@@ -40,17 +40,16 @@
     return cards.join('');
   }
 
+  // One flat, curated grid — no sparse section headers.
   function grid() {
-    const tiles = RW.tiles();
-    return RW.SECTIONS.map((sec) => {
-      const items = tiles.filter((t) => t.section === sec.id);
-      if (!items.length) return '';
-      return '<div class="section-title" style="margin-top:20px">' + esc(sec.label) + '</div>' +
-        '<div class="app-grid">' + items.map((a) =>
-          '<button class="app-tile" data-act="nav" data-route="' + (a.route || '#/' + a.id) + '">' +
-          '<div class="app-icon" style="background:' + (a.tileBg || '#eef0f5') + '">' + a.emoji + '</div>' +
-          '<div class="app-label">' + esc(a.title) + '</div></button>').join('') + '</div>';
-    }).join('');
+    const tiles = RW.tiles().slice().sort((a, b) => {
+      const si = (t) => RW.SECTIONS.findIndex((s) => s.id === t.section);
+      return si(a) - si(b) || a.order - b.order;
+    });
+    return '<div class="app-grid">' + tiles.map((a) =>
+      '<button class="app-tile" data-act="nav" data-route="' + (a.route || '#/' + a.id) + '">' +
+      '<div class="app-icon" style="background:' + (a.tileBg || '#eef0f5') + '">' + a.emoji + '</div>' +
+      '<div class="app-label">' + esc(a.title) + '</div></button>').join('') + '</div>';
   }
 
   function render() {
@@ -60,10 +59,11 @@
 
     const now = nowStack();
     const body =
-      // primary CTA into the marketplace
-      '<button class="btn" style="margin-top:14px" data-act="nav" data-route="#/discover">🔎 Find &amp; book a local business</button>' +
-      (now ? '<div class="section-title" style="margin-top:20px">Your Rockway</div>' + now : '') +
-      '<div class="section-title" style="margin-top:20px">Explore Gibraltar</div>' +
+      // search-style entry into the marketplace — the app's primary action
+      '<button class="search-cta" style="margin-top:14px" data-act="nav" data-route="#/discover">' +
+      '<span>🔎</span><span>Find a groomer, barber, plumber…</span><span class="go">Discover</span></button>' +
+      (now ? '<div class="section-title">Your Rockway</div>' + now : '') +
+      '<div class="section-title">The Rock, at your service</div>' +
       grid() +
       '<div class="section-title" style="margin-top:22px">For you</div>' +
       '<div class="carousel">' + offers + '</div>';

@@ -30,7 +30,10 @@
     const levanter = /e/i.test(w.windDir || '') && /levant|^e/i.test(w.windDir || 'E');
     let level = 'amber';
     if (RW.api && RW.api.frontier) { level = RW.api.frontier.community('in-car').level; }
-    return { hour: new Date().getHours(), levanter: /levant/i.test(w.condition || '') || /E/.test(w.windDir || ''), frontierLevel: level, runwayClosed: false };
+    var runwayClosed = false;
+    try { runwayClosed = !!(RW.api.runway && RW.api.runway.closedNow && RW.api.runway.closedNow()); } catch (e) {}
+    var hour = typeof RW._debugHour === 'number' ? RW._debugHour : new Date().getHours();
+    return { hour: hour, levanter: /levant/i.test(w.condition || '') || /^E/i.test(w.windDir || ''), frontierLevel: level, runwayClosed: runwayClosed };
   }
 
   function rock(state) {

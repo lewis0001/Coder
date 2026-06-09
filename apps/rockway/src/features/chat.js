@@ -309,8 +309,7 @@
           'data-chatid="' + esc(chatId) + '">' +
         '<button class="btn sm" ' +
           'style="border-radius:22px;padding:10px 22px;flex:0 0 auto;' +
-            'background:var(--green);color:#fff;font-weight:800;' +
-            'box-shadow:0 4px 14px rgba(10,157,74,0.32)" ' +
+            'background:var(--brand);color:#fff;font-weight:700" ' +
           'data-act="chatSend" data-chatid="' + esc(chatId) + '">' +
           'Send' +
         '</button>' +

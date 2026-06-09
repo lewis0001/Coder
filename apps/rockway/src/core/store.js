@@ -41,6 +41,9 @@
       _exploreFilter: 'all',       // explore category filter
       _cableCarNotify: false,      // explore cable-car reopening notify flag
       _bizDraftCat: null,          // business onboarding draft category
+      jobPosts: [],                // user-posted job adverts
+      prefs: {},                   // account toggles (notifications etc.)
+      addresses: [],               // saved addresses
 
       // ---- chat (customer ⇄ business / friends) ----
       contacts: [

@@ -73,3 +73,26 @@ Create `src/features/<id>.js`:
 - `node test/smoke.js` passes (it auto-renders your route + checks for leaks).
 - Your feature renders, every control works, money/points stay consistent,
   state survives reload, and you didn't touch another module.
+
+## 5. Design rules (v2 — "Limestone & Key", world-class or nothing)
+- **Palette discipline**: Gibraltar red `var(--brand)` is for PRIMARY actions
+  and live signals only. Secondary buttons: `.btn.sea` (now quiet ink) or
+  `.btn.ghost`. NO new hex colours, NO gradients as decoration, NO glow
+  box-shadows. Status colours only via `.pill-status ok|warn|info|danger|neutral`.
+- **Type**: section titles/screen titles automatically use the Fraunces display
+  face — never set `font-family` inline. All figures (money, times, counts) get
+  `class="num"`. Body stays Inter.
+- **Active chips are ink** (`.chip.tap` + `.on`) — never red.
+- **Honesty in UI**: anything live shows its source + freshness ("Live ·
+  gibraltarairport.gi · 12m ago" — use `RW.live.ageMin(name)`); anything
+  modelled/estimated says so; anything seeded says `Example`.
+- **No exotic Unicode spaces in code** (a U+2002 once broke a fix); curly
+  apostrophes are fine inside text, never a straight `'` inside a
+  single-quoted JS string.
+
+## 6. Live data (RW.live)
+`var w = RW.live.get('weather')` → payload or `null` (offline/file:///loading).
+While `RW.live.status(name) === 'loading'` render `.skel` placeholders sized
+like the final content; on `null + status 'fail'` render the seed fallback with
+no error noise. Available: news, weather, flights, pharmacy, holidays, fixtures
+(payload shapes documented in server.js header + the feature prompts).
