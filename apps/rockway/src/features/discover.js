@@ -315,11 +315,62 @@
 
   // ─── MODULE STATE ─────────────────────────────────────────────────────────────
   var activeCategory = 'All';   // filter chip state (session only)
+  var searchQuery    = '';      // live search text (session only)
+  var searchTimer    = null;    // debounce handle for search re-renders
   // Booking flow state: keyed "bizId::serviceId"
   var selectedDay  = {};
   var selectedSlot = {};
 
   // ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+  // Seed entries are founder-curated examples. The user's own published
+  // business (myBizEntry) is real and never gets the Example badge.
+  function isExample(bizId) {
+    return !!BIZ_BY_ID[bizId];
+  }
+
+  // Case-insensitive substring match across name, category, area AND service
+  // names. ql must already be lower-cased; empty query matches everything.
+  function matchesQuery(biz, ql) {
+    if (!ql) return true;
+    if (String(biz.name || '').toLowerCase().indexOf(ql) !== -1) return true;
+    if (String(biz.category || '').toLowerCase().indexOf(ql) !== -1) return true;
+    if (String(biz.area || '').toLowerCase().indexOf(ql) !== -1) return true;
+    var svcs = biz.services || [];
+    for (var i = 0; i < svcs.length; i++) {
+      if (String(svcs[i].name || '').toLowerCase().indexOf(ql) !== -1) return true;
+    }
+    return false;
+  }
+
+  // ─── SEARCH WIRING ───────────────────────────────────────────────────────────
+  // The global action bus only delegates clicks, so the search field is wired
+  // through ONE document-level 'input' delegate registered at load. Re-renders
+  // are debounced (150ms); focus + caret are restored right after each search
+  // re-render so typing never loses the input.
+  function restoreSearchFocus() {
+    var el = document.getElementById('disc-search');
+    if (!el || typeof el.focus !== 'function') return;
+    el.focus();
+    if (typeof el.setSelectionRange === 'function') {
+      var len = String(el.value || '').length;
+      try { el.setSelectionRange(len, len); } catch (e) { /* non-text input states */ }
+    }
+  }
+
+  document.addEventListener('input', function (ev) {
+    var t = ev.target;
+    if (!t || t.id !== 'disc-search') return;
+    var q = String(t.value || '');
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () {
+      searchTimer = null;
+      if (q === searchQuery) return;
+      searchQuery = q;
+      RW.render();
+      restoreSearchFocus();
+    }, 150);
+  });
 
   function lowestPrice(biz) {
     var prices = biz.services.map(function (s) { return s.price; }).filter(function (p) { return p > 0; });
@@ -396,6 +447,9 @@
     var priceStr = lp !== null ? 'from £' + lp.toFixed(0) : 'Free booking';
     var saved = isSaved(biz.id);
     var accent = catAccent(biz.category);
+    var trail = '';
+    if (saved) trail += '<span style="font-size:17px;line-height:1">❤️</span>';
+    if (isExample(biz.id)) trail += '<span class="pill-status neutral" style="font-size:10px;padding:2px 8px">Example</span>';
     return (
       '<div class="card" style="margin-bottom:12px;cursor:pointer" data-act="nav" data-route="' + esc('#/discover/' + biz.id) + '">' +
         '<div style="display:flex;align-items:flex-start;gap:12px">' +
@@ -403,21 +457,18 @@
             biz.emoji +
           '</div>' +
           '<div style="flex:1;min-width:0">' +
-            '<div style="font-weight:800;font-size:15px;line-height:1.25">' + esc(biz.name) + '</div>' +
-            '<div style="margin-top:2px;font-size:12px;color:var(--ash)">' +
-              '<span class="chip" style="font-size:11px;padding:1px 7px;margin-right:4px">' + esc(biz.area) + '</span>' +
-              '<span style="color:' + accent + ';font-weight:700">' + esc(biz.category) + '</span>' +
+            '<div style="font-weight:800;font-size:15.5px;line-height:1.25">' + esc(biz.name) + '</div>' +
+            '<div style="margin-top:3px;font-size:12.5px;color:var(--ash)">' +
+              esc(biz.area) + ' · <span style="color:' + accent + ';font-weight:700">' + esc(biz.category) + '</span>' +
             '</div>' +
           '</div>' +
-          '<div style="text-align:right;flex:0 0 auto">' +
-            (saved ? '<span style="font-size:18px;line-height:1">❤️</span>' : '') +
-          '</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:0 0 auto">' + trail + '</div>' +
         '</div>' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-top:10px">' +
+        '<div style="display:flex;align-items:baseline;gap:10px;margin-top:10px">' +
           '<span style="color:#f5a623;font-weight:700;font-size:13px">' + starRating(biz.rating) + '</span>' +
           '<span class="num" style="font-size:12px;color:var(--ash)">(' + esc(String(biz.reviews)) + ' reviews)</span>' +
           '<span style="flex:1"></span>' +
-          '<span style="font-size:12px;font-weight:700;color:' + accent + '">' + esc(priceStr) + '</span>' +
+          '<span class="num" style="font-size:13px;font-weight:800;color:' + accent + '">' + esc(priceStr) + '</span>' +
         '</div>' +
       '</div>'
     );
@@ -427,20 +478,36 @@
     var catItems = CATEGORIES.map(function (c) { return { label: c, value: c }; });
     var filterChips = RW.ui.chips(catItems, activeCategory, 'discFilter', true);
 
+    var q  = searchQuery.trim();
+    var ql = q.toLowerCase();
     var all = allBusinesses();
-    var visible = activeCategory === 'All'
-      ? all
-      : all.filter(function (b) { return b.category === activeCategory; });
+    var visible = all.filter(function (b) {
+      if (activeCategory !== 'All' && b.category !== activeCategory) return false;
+      return matchesQuery(b, ql);
+    });
 
-    var countLabel = activeCategory === 'All'
-      ? 'All Local Businesses (' + visible.length + ')'
-      : esc(activeCategory) + ' (' + visible.length + ')';
+    var n = visible.length;
+    // sectionTitle() escapes its label — pass raw text (incl. the echoed query).
+    var countLabel = q
+      ? 'Results for “' + q + '” (' + n + (n === 1 ? ' result' : ' results') + ')'
+      : (activeCategory === 'All'
+        ? 'All Local Businesses (' + n + ')'
+        : activeCategory + ' (' + n + ')');
 
-    var cards = visible.length
+    var cards = n
       ? visible.map(bizCard).join('')
-      : RW.ui.empty('🔍', 'No businesses in this category yet.');
+      : RW.ui.empty('🔍', q
+        ? 'No matches for “' + esc(q) + '”. Try another word or clear a filter.'
+        : 'No businesses in this category yet.');
+
+    var searchBox =
+      '<div style="margin-bottom:12px">' +
+        '<input id="disc-search" class="input" type="search" placeholder="Search businesses, services, areas…"' +
+          ' value="' + esc(searchQuery) + '" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">' +
+      '</div>';
 
     var body =
+      searchBox +
       '<div style="font-size:13px;color:var(--ash);margin-bottom:10px">' +
         'Discover and book Gibraltar’s finest local businesses' +
       '</div>' +
@@ -473,6 +540,18 @@
       accent: accent,
       chips: [starRating(biz.rating) + ' (' + biz.reviews + ' reviews)', biz.hours],
     });
+
+    // Example badge + claim line (seed listings only — never the user's own)
+    var exampleStrip = '';
+    if (isExample(bizId)) {
+      exampleStrip =
+        '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px">' +
+          '<span class="pill-status neutral">Example</span>' +
+          '<span style="font-size:12.5px;color:var(--ash)">This is an example listing. Own this business? ' +
+            '<span data-act="nav" data-route="#/business" style="color:var(--ink);font-weight:700;text-decoration:underline;cursor:pointer">List yours free</span>.' +
+          '</span>' +
+        '</div>';
+    }
 
     // Info card
     var infoCard =
@@ -545,7 +624,7 @@
         '</div>';
     });
 
-    var body = infoCard + actionRow + blurbCard + servicesHtml + reviewsHtml;
+    var body = exampleStrip + infoCard + actionRow + blurbCard + servicesHtml + reviewsHtml;
 
     return RW.ui.screen({ title: biz.name, hero: heroEl, body: body });
   }
@@ -613,6 +692,9 @@
           (curSlot ? ' · ' + esc(dayLabelStr) + ' ' + esc(curSlot) : '') +
         '</button>' +
         '<div style="font-size:11px;color:var(--ash);text-align:center;margin-top:6px">Pay in person · Free to cancel</div>' +
+        (isExample(bizId)
+          ? '<div style="font-size:11px;color:var(--ash);text-align:center;margin-top:3px">Example business — booking is a demo</div>'
+          : '') +
       '</div>';
 
     return (
