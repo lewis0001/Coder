@@ -83,8 +83,9 @@ console.log('\nRendering routes:');
 const features = RW.allFeatures();
 const routes = ['#/', '#/activity', '#/account', '#/discover', '#/business'];
 features.forEach((f) => { if (f.showTile) routes.push('#/' + f.id); });
-// a Discover business-detail (the booking screen)
+// a Discover business-detail (the booking screen) + a chat thread
 if (RW.api && RW.api.businesses && RW.api.businesses()[0]) routes.push('#/discover/' + RW.api.businesses()[0].id);
+routes.push('#/chat/c1');
 
 routes.forEach((r) => {
   location.hash = r;
@@ -92,7 +93,7 @@ routes.forEach((r) => {
     RW.render();
     const html = elements.app ? elements.app.innerHTML : '';
     if (!html || html.length < 200) fail(r + ' rendered too little (' + html.length + ' chars)');
-    else if (/undefined|\[object Object\]|NaN/.test(html)) fail(r + ' contains undefined/NaN/object leakage');
+    else if (/undefined|\[object Object\]|NaN|native code|&amp;amp;/.test(html)) fail(r + ' contains undefined/NaN/object/function/double-escape leakage');
     else ok(r + ' (' + html.length + ' chars)');
   } catch (e) { fail(r + ' threw → ' + e.message); }
 });
@@ -114,6 +115,46 @@ if ((RW.S.frontierReports || []).length <= beforeReports) fail('frontier report 
 else ok('frontier report recorded (' + RW.S.frontierReports.length + ')');
 act('setLang', { v: 'yan' });
 if (RW.S.lang !== 'yan') fail('setLang did not persist'); else ok('setLang works');
+
+// discover booking flow end-to-end → must surface on the Bookings tab.
+// (These exact paths shipped broken once: discConfirm landed on an Activity
+// screen whose array/object bug hid every booking.)
+const pawBiz = RW.api.getBusiness && RW.api.getBusiness('biz-pc');
+if (!pawBiz) fail('RW.api.getBusiness(biz-pc) missing');
+else {
+  const svc = pawBiz.services[0];
+  act('discConfirm', { id: 'biz-pc', svc: svc.id, day: 'Tomorrow', slot: '10:00' });
+  if (!(RW.S.bookings || []).length) fail('discConfirm did not create a booking');
+  else ok('booking created (' + RW.S.bookings[0].ref + ')');
+  location.hash = '#/activity';
+  RW.render();
+  let aHtml = elements.app.innerHTML;
+  if (aHtml.indexOf('Paws') === -1) fail('Activity does not show the new booking');
+  else ok('Activity shows the booking');
+  act('activityFilter', { v: 'bookings' });
+  aHtml = elements.app.innerHTML;
+  if (aHtml.indexOf('Paws') === -1) fail('Bookings filter hides the booking');
+  else ok('Bookings filter keeps the booking visible');
+  if (/native code/.test(aHtml)) fail('Activity leaks a stringified function');
+}
+
+// property detail must be reachable via its action (RW.navigate bug shipped once)
+act('propertyView', { id: 'p-ov-r1' });
+RW.render();
+const pHtml = elements.app.innerHTML;
+if (!pHtml || pHtml.length < 500) fail('property detail did not render after propertyView');
+else ok('property detail reachable (' + pHtml.length + ' chars)');
+
+// the user's published business must appear in Discover
+RW.S.myBusiness = { id: 'mybiz', name: 'Test Grooming Co', category: 'Pets', emoji: '🐾', area: 'Town', rating: 'New', reviews: 0, services: [{ id: 'ms1', name: 'Trim', price: 10, durationMin: 30 }], t: Date.now() };
+location.hash = '#/discover';
+RW.render();
+const dHtml = elements.app.innerHTML;
+if (dHtml.indexOf('Test Grooming Co') === -1) fail('published business missing from Discover');
+else ok('published business appears in Discover');
+if (!RW.api.getBusiness('mybiz')) fail('getBusiness cannot resolve the published business');
+else ok('getBusiness resolves the published business');
+RW.S.myBusiness = null;
 
 // top-level content feeds must not render empty on fresh state (catches
 // default-filter regressions like the news getFilter bug)

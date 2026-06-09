@@ -2,7 +2,7 @@
  * Keeps look & feel consistent and lets features stay tiny. */
 (function (RW) {
   'use strict';
-  const { esc, money } = RW.util;
+  const { esc } = RW.util;
   const ICON = RW.ICON;
 
   // Top bar: either the branded home header, or a titled back-bar.
@@ -44,9 +44,16 @@
   function screen(opts) {
     opts = opts || {};
     const top = topbar(opts.brand ? { brand: true } : { title: opts.title, plain: opts.plain, right: opts.right });
+    // Default the active tab from the current route so detail screens keep
+    // their hub highlighted (e.g. #/discover/biz-pc → Discover, not Home).
+    let tab = opts.tab;
+    if (!tab) {
+      const seg = (location.hash || '#/').replace(/^#\/?/, '').split('/')[0];
+      tab = { home: 'home', discover: 'discover', activity: 'activity', account: 'account', business: 'account' }[seg] || 'home';
+    }
     return top +
       '<div class="screen fade-in">' + (opts.hero || '') + '<div class="pad">' + (opts.body || '') + '<div style="height:24px"></div></div></div>' +
-      (opts.sticky || '') + tabbar(opts.tab || 'home');
+      (opts.sticky || '') + tabbar(tab);
   }
 
   // Small reusable row.
@@ -91,8 +98,5 @@
     }).join('') + '</div>';
   }
 
-  // Deprecated no-op kept so any lingering caller never throws (no cart in MVP).
-  function cartFab() { return ''; }
-
-  RW.ui = { topbar, tabbar, cartFab, screen, row, sectionTitle, empty, hero, chips };
+  RW.ui = { topbar, tabbar, screen, row, sectionTitle, empty, hero, chips };
 })(window.RW);

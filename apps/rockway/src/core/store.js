@@ -36,6 +36,11 @@
       newsFilter: {},              // news source/category filter
       newsNotices: [],             // community noticeboard posts
       newsBookmarks: [],           // saved news items
+      evtCat: '',                  // events category filter
+      evtMon: '',                  // events month filter
+      _exploreFilter: 'all',       // explore category filter
+      _cableCarNotify: false,      // explore cable-car reopening notify flag
+      _bizDraftCat: null,          // business onboarding draft category
 
       // ---- chat (customer ⇄ business / friends) ----
       contacts: [

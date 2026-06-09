@@ -480,7 +480,7 @@
       propertyView: function (el) {
         var id = el.dataset.id;
         if (!id) return;
-        RW.navigate('#/property/' + id);
+        RW.go('#/property/' + id);
       },
 
       propertySave: function (el) {
@@ -519,7 +519,7 @@
           when: now,
         });
         RW.store.save();
-        RW.toast('Viewing request sent to ' + listing.agent + '. They will be in touch shortly.');
+        RW.toast('Viewing request saved — contact ' + listing.agent + ' to arrange a time.');
         RW.render();
       },
     },

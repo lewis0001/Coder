@@ -8,9 +8,9 @@
  *
  * ───────────────────────── FEATURE MODULE CONTRACT ─────────────────────────
  * RW.register({
- *   id:       'eat',              // unique; also the first route segment (#/eat)
- *   title:    'Eat',              // shown on tile + top bar
- *   emoji:    '🍔',
+ *   id:       'discover',         // unique; also the first route segment (#/discover)
+ *   title:    'Discover',         // shown on tile + top bar
+ *   emoji:    '🔎',
  *   tileBg:   '#fde7ea',          // home tile icon background
  *   section:  'daily',            // 'daily' | 'money' | 'services' | 'explore'
  *   order:    10,                 // sort order within section
@@ -22,8 +22,9 @@
  * });
  *
  * render() should return a full screen via RW.ui.screen(...) helpers.
- * Persist state through RW.S + RW.store.save(). Move money only via
- * RW.store.debit/credit. After mutating state call RW.render() to refresh.
+ * Persist state through RW.S + RW.store.save() (new fields must exist in
+ * store.js defaults(); guard reads with || []). There are NO payments/wallet —
+ * bookings are free requests. After mutating state call RW.render() to refresh.
  * ───────────────────────────────────────────────────────────────────────── */
 (function (RW) {
   'use strict';

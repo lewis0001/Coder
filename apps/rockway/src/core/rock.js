@@ -67,7 +67,7 @@
       : '';
 
     // cable car line from town (south) up toward the summit, with a cabin
-    const cable = '<line x1="208" y1="196" x2="172" y2="86" stroke="' + (night ? '#3a5group' : '#8a8178') + '" stroke-width="1" stroke-dasharray="2 3" opacity="0.7"/>' +
+    const cable = '<line x1="208" y1="196" x2="172" y2="86" stroke="' + (night ? '#3a506f' : '#8a8178') + '" stroke-width="1" stroke-dasharray="2 3" opacity="0.7"/>' +
       '<g class="rk-cabin"><rect x="188" y="138" width="7" height="5" rx="1.4" fill="#d4112a"/></g>';
 
     // Europa lighthouse (south tip) with blinking lamp

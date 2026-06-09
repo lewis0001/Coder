@@ -66,8 +66,14 @@
 
   /* ---- render ---- */
   function render(parts) {
-    parts = parts || {};
-    if (parts.filter != null) currentFilter = parts.filter;
+    /* The router passes an ARRAY of route segments (#/activity/bookings →
+     * ['bookings']). Never read named props off it — `parts.filter` is
+     * Array.prototype.filter, which once made a function the active filter
+     * and hid every booking. Accept only a known segment string. */
+    if (parts && typeof parts[0] === 'string' &&
+        FILTERS.some(function (f) { return f.value === parts[0]; })) {
+      currentFilter = parts[0];
+    }
 
     /* collect + sort */
     var items = [];
@@ -99,8 +105,8 @@
     var body;
     if (visible.length === 0) {
       var emptyMsg = currentFilter === 'all'
-        ? 'No activity yet.<br>Your orders, parcels &amp; bookings appear here.'
-        : 'No ' + esc(currentFilter) + ' activity yet.';
+        ? 'No activity yet.<br>Your bookings, RSVPs &amp; reservations appear here.'
+        : 'No ' + esc(currentFilter) + ' yet.<br>Book a local business from Discover.';
       body = summary + filterChips + RW.ui.empty('🧾', emptyMsg);
     } else {
       /* group by calendar day */
@@ -135,7 +141,7 @@
     render: render,
     actions: {
       activityFilter: function (el) {
-        render({ filter: el.dataset.v });
+        currentFilter = el.dataset.v;
         RW.render();
       },
     },

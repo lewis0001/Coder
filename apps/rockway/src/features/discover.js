@@ -263,10 +263,39 @@
   var BIZ_BY_ID = {};
   SEED.forEach(function (b) { BIZ_BY_ID[b.id] = b; });
 
+  // The user's own published business (For Business) appears in the directory
+  // alongside the seed entries — this is the "Preview in Discover" promise.
+  function myBizEntry() {
+    var b = RW.S.myBusiness;
+    if (!b) return null;
+    return {
+      id: b.id || 'mybiz',
+      name: b.name,
+      category: b.category === 'Health' ? 'Health & Wellness' : b.category,
+      emoji: b.emoji || '⭐',
+      area: b.area || 'Gibraltar',
+      rating: typeof b.rating === 'number' ? b.rating : null,
+      reviews: b.reviews || 0,
+      hours: b.hours || '',
+      phone: b.phone || '',
+      blurb: b.blurb || '',
+      services: b.services || [],
+    };
+  }
+  function getBiz(id) {
+    if (BIZ_BY_ID[id]) return BIZ_BY_ID[id];
+    var mine = myBizEntry();
+    return mine && mine.id === id ? mine : null;
+  }
+  function allBusinesses() {
+    var mine = myBizEntry();
+    return mine ? SEED.concat([mine]) : SEED.slice();
+  }
+
   // ─── READ APIs ───────────────────────────────────────────────────────────────
   RW.api = RW.api || {};
-  RW.api.businesses = function () { return SEED.slice(); };
-  RW.api.getBusiness = function (id) { return BIZ_BY_ID[id] || null; };
+  RW.api.businesses = function () { return allBusinesses(); };
+  RW.api.getBusiness = function (id) { return getBiz(id); };
 
   // ─── CATEGORY CONFIG ─────────────────────────────────────────────────────────
   var CATEGORIES = ['All', 'Pets', 'Hair & Beauty', 'Fitness', 'Trades', 'Auto', 'Health & Wellness', 'Dining', 'Lessons'];
@@ -299,7 +328,7 @@
   }
 
   function starRating(r) {
-    return '★' + r.toFixed(1);
+    return typeof r === 'number' ? '★' + r.toFixed(1) : '🆕 New';
   }
 
   function isSaved(bizId) {
@@ -398,9 +427,10 @@
     var catItems = CATEGORIES.map(function (c) { return { label: c, value: c }; });
     var filterChips = RW.ui.chips(catItems, activeCategory, 'discFilter', true);
 
+    var all = allBusinesses();
     var visible = activeCategory === 'All'
-      ? SEED
-      : SEED.filter(function (b) { return b.category === activeCategory; });
+      ? all
+      : all.filter(function (b) { return b.category === activeCategory; });
 
     var countLabel = activeCategory === 'All'
       ? 'All Local Businesses (' + visible.length + ')'
@@ -427,7 +457,7 @@
   var openBookingKey = null;
 
   function renderDetail(bizId) {
-    var biz = BIZ_BY_ID[bizId];
+    var biz = getBiz(bizId);
     if (!biz) return renderList();
 
     RW.S.savedBusinesses = RW.S.savedBusinesses || [];
@@ -543,10 +573,21 @@
     // time slots (09:00–17:00, 30-min step — every hour for longer services)
     var step = svc.durationMin >= 60 ? 60 : 30;
     var slots = timeSlots(9, 17, step);
+    // "Today" must not offer times that have already passed (20-min lead time)
+    if (curDay === nextDays(1)[0].iso) {
+      var nowMins = new Date().getHours() * 60 + new Date().getMinutes() + 20;
+      slots = slots.filter(function (sl) {
+        var hm = sl.split(':');
+        return parseInt(hm[0], 10) * 60 + parseInt(hm[1], 10) >= nowMins;
+      });
+    }
 
     var slotChipsHtml = '<div style="margin-top:10px">' +
       '<div style="font-size:12px;font-weight:700;color:var(--ash);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Choose Time</div>' +
       '<div class="chips">';
+    if (!slots.length) {
+      slotChipsHtml += '<span class="subtle" style="padding:4px 0">No more slots today — pick another day.</span>';
+    }
     slots.forEach(function (sl) {
       var on = sl === curSlot ? ' on brand' : '';
       slotChipsHtml +=
@@ -587,7 +628,7 @@
 
   function render(parts) {
     var bizId = parts && parts[0];
-    if (bizId && BIZ_BY_ID[bizId]) {
+    if (bizId && getBiz(bizId)) {
       return renderDetail(bizId);
     }
     openBookingKey = null; // reset booking panel when back on list
@@ -672,7 +713,7 @@
         var slot    = el.dataset.slot;
         if (!bizId || !svcId || !dayLabel || !slot) return;
 
-        var biz = BIZ_BY_ID[bizId];
+        var biz = getBiz(bizId);
         if (!biz) return;
         var svc = null;
         biz.services.forEach(function (s) { if (s.id === svcId) svc = s; });
@@ -704,7 +745,7 @@
 
       discMessage: function (el) {
         var id = el.dataset.id;
-        var biz = id ? BIZ_BY_ID[id] : null;
+        var biz = id ? getBiz(id) : null;
         var name = biz ? biz.name : 'the business';
         RW.toast('Message sent to ' + name + '. They’ll reply shortly.');
       },

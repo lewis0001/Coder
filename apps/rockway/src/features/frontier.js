@@ -92,7 +92,7 @@
 
   RW.register({
     id: 'frontier', title: 'Frontier', emoji: '🛂', tileBg: '#e6effc', section: 'daily', order: 20,
-    tick: 30000, render,
+    render,
     actions: {
       frontierLane: (el) => { selLane = el.dataset.v; RW.render(); },
       frontierLevel: (el) => { selLevel = el.dataset.v; RW.render(); },

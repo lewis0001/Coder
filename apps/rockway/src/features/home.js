@@ -16,7 +16,7 @@
       ? c.count + ' recent report' + (c.count === 1 ? '' : 's') + ' · tap for cameras'
       : 'No fresh reports · typical for now · tap to help';
     return '<div class="rock-hero">' + svg +
-      '<div class="hero-top"><div class="g"><div class="lg">Buenas, ' + dayPart() + ' 🇬🇮</div>' +
+      '<div class="hero-top"><div class="g"><div class="lg">' + ({ morning: 'Buenos días', afternoon: 'Buenas tardes', evening: 'Buenas noches' }[dayPart()] || 'Buenas') + ' 🇬🇮</div>' +
       '<div class="sm">Gibraltar · ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + (levanter ? ' · Levanter over the Rock' : '') + '</div></div>' +
       '<div class="hero-wx">' + W.emoji + ' ' + W.tempC + '°</div></div>' +
       '<div class="hero-foot" data-act="nav" data-route="#/frontier">' +

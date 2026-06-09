@@ -1,48 +1,61 @@
 # Rockway — live build checklist
 
-Status: ✅ done · 🔨 in progress · ⏳ queued · 🔬 needs research
-Product: **Gibraltar local-business discovery + booking marketplace** (MVP).
-No in-app payments. Only automatable / UGC / open-data features. (See ROCKWAY.md
-"Pivot rationale".)
+> Authoritative plan: **docs/PLAN.md** (synthesis of the 4 audits in
+> docs/review/). This file tracks execution state. Keep `node test/smoke.js`
+> green; update here after each wave.
 
-## Foundation
-- [x] Plugin/registry architecture (core/*) + zero-build, file:// support
-- [x] Design system (styles.css) + "Limestone & Key" + living Rock hero
-- [x] Persistence (store.js v2 — bookings/listings, no wallet)
-- [x] Headless smoke test (test/smoke.js) — **green, 13 features**
-- [x] Scaffold docs (ROCKWAY.md, AGENTS.md, this file, design-vision.md)
-- [x] Gibraltar research dossier (docs/research/*)
+Product: Gibraltar local-business discovery + booking marketplace + genuinely
+automatable community features. Solo-launchable: no payments licence, no
+delivery ops, no fabricated "live" data.
 
-## Marketplace spine
-- [x] Discover — 14-business directory, category filters, business detail,
-  service list + day/slot booking → RW.S.bookings
-- [x] For Business — self-onboard listing + dashboard (accept/decline bookings)
-- [x] Activity — unified bookings + reservations feed
-- [x] Account — profile, language (EN/ES/Llanito), business CTA, stats
+## Done
+- [x] Plugin/registry architecture · design system · living Rock hero
+- [x] 13 features: home, discover, business, activity, account, frontier,
+  marketplace, jobs, property, events, explore, news (live Chronicle RSS),
+  chat
+- [x] Research dossiers (docs/research/*) + 4 audit reports (docs/review/*)
+- [x] **Phase 0 — critical fixes** (see docs/PLAN.md for the full list):
+  scrolling restored · Bookings tab fixed · property details reachable ·
+  server crash fixed · chat composer visible · tab states · day-hero scrim ·
+  double-escapes · news chip collision · honest business dashboard ·
+  published biz in Discover · past slots/events guards · pivot residue ·
+  store contract · smoke hardened (booking E2E etc.)
 
-## Automatable community features
-- [x] Frontier — live cameras + community crowd-reports (honest; no fake minutes)
-- [x] News — LIVE Gibraltar Chronicle RSS via /api/news proxy + seed fallback
-- [x] What's On — events with free RSVP/reservations
-- [x] Explore — attractions/tours, free reserve/enquire (operators sell tickets)
-- [x] Marketplace — local classifieds (post/save)
-- [x] Jobs — local board (apply/save)
-- [x] Property — rent/buy listings (save/request viewing)
-- [x] Chat — customer ⇄ business / friends threads
+## Next up
+### Phase 1 — Honesty & brand polish (agents, one file each)
+- [ ] News: remove fabricated seed articles; live-first; Example labels
+- [ ] Jobs: UGC reframe; no fake vacancies at real employers
+- [ ] Property: Example labels; de-brand fakes from real agents
+- [ ] Discover: "Example" badge on seed businesses (pre-"claim listing")
+- [ ] Frontier: honest single-device copy until backend
+- [ ] Account: wire or remove the 4 dead settings rows
+- [ ] Palette discipline pass (one red, gold accent; kill stray greens/blues)
 
-## Removed in pivot (not easily automatable for MVP)
-- [x] Eat, Shop, Send, Move, Wallet, Pay, Bills, Top-up, Rewards, Gov.gi,
-  Health, Parking, Cart/checkout
+### Phase 2 — Novel live data (verified sources; one agent per feature)
+- [ ] Live weather + Levanter meter (Open-Meteo)
+- [ ] Runway-closure countdown (gibraltarairport.gi proxy) ← signature
+- [ ] Tides & beach conditions (Open-Meteo marine)
+- [ ] "Today on the Rock" morning briefing card
+- [ ] GI + Andalucía holidays → frontier risk flags (Nager.Date)
+- [ ] Duty pharmacy today (dutypharmacy.gi proxy)
+- [ ] Gibraltar FC fixtures (TheSportsDB)
+- [ ] Ships in the Bay (aisstream.io → /api/bay → Rock hero dots)
+- [ ] One Road bus strip (track.bus.gi busTracker.php proxy + fallback)
 
-## Next (optional)
-- [ ] Per-business availability (real open slots vs generic) + booking reschedule/cancel
-- [ ] Write a review back onto a business (currently read-only seed reviews)
-- [ ] Discover search box + map view
-- [ ] Real weather API on the Rock hero (Open-Meteo, same proxy pattern as news)
-- [ ] PWA manifest + offline cache
-- [ ] Optional card deposit on booking via a PSP (Stripe) — when licensed
+### Phase 3 — Marketplace depth
+- [ ] Booking cancel/reschedule + owner↔customer status sync
+- [ ] Double-booking prevention (own business blocks taken slots)
+- [ ] Review write-back after a booking
+- [ ] Global search across all registries
+- [ ] PWA manifest + service worker + share buttons
+
+### Phase 4 — Multiplayer & launch
+- [ ] Supabase (magic-link auth + shared listings/bookings/reports/reviews)
+- [ ] Moderation: report-content button + founder queue
+- [ ] Monetization: Featured listing £19/mo · job post £29 (verify Stripe-GI;
+  PayPal/MoR fallback)
+- [ ] T&Cs/privacy · Plausible analytics · deploy (static + proxy) + domain
 
 ## Continuity
-- Manifest in `src/core/boot.js` lists every feature file.
-- After each change: `node test/smoke.js` (must stay green) + update this file.
-- New persisted state → add to `defaults()` in `src/core/store.js` (guard `|| []`).
+- Manifest: src/core/boot.js. New persisted state → defaults() in store.js.
+- Verify: `node test/smoke.js` + puppeteer screenshots (server: `node server.js`).

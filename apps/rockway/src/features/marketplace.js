@@ -233,8 +233,8 @@
     // Hero banner
     var heroHtml = RW.ui.hero({
       emoji: '&#x1f3f7;&#xfe0f;',
-      title: 'Gibraltar Buy &amp; Sell',
-      sub: 'Second-hand goods, vehicles, electronics &amp; more — across the Rock',
+      title: 'Gibraltar Buy & Sell',
+      sub: 'Second-hand goods, vehicles, electronics & more — across the Rock',
       accent: '#d4112a',
     });
 
@@ -251,7 +251,7 @@
       ? feedItems.map(function (l) { return listingCard(l); }).join('')
       : RW.ui.empty('&#x1f50d;', 'No listings in this category yet.', 'Clear filter', '#/marketplace');
 
-    var feedLabel = filter === 'All' ? 'Buy &amp; Sell' : esc(filter);
+    var feedLabel = filter === 'All' ? 'Buy & Sell' : filter;
     var feedSection =
       RW.ui.sectionTitle(feedLabel, filter !== 'All' ? 'Clear' : '', filter !== 'All' ? '#/marketplace' : '') +
       feedHtml;

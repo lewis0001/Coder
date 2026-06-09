@@ -12,7 +12,6 @@
   // ---- pinned system threads (always present, never from contacts) ----
   const PINNED = [
     { id: 'support', name: 'Rockway Support', emoji: '\u{1F6DF}', pinned: true },
-    { id: 'courier', name: 'Courier',          emoji: '\u{1F6F5}', pinned: true },
   ];
 
   // ---- tasteful Llanito-flavoured canned replies (garnish, not gimmick) ----
@@ -37,13 +36,6 @@
     "Rockway Support here — happy to help. Could you share a bit more detail?",
   ];
 
-  const COURIER_REPLIES = [
-    "Hi! Courier here — your parcel is on the way.",
-    "Just crossing from the frontier now, be with you shortly.",
-    "Delivery today between 2 pm and 5 pm. Someone in?",
-    "Parcel left at the door as requested. Have a good one!",
-    "One more stop before yours — about 20 minutes away.",
-  ];
 
   // Ensure a chat thread exists for the given contact/pinned entry.
   function ensureChat(entry) {
@@ -325,7 +317,7 @@
       '</div>';
 
     // Title: emoji + name (both escaped).
-    const title = esc(thread.emoji) + ' ' + esc(thread.name);
+    const title = thread.emoji + ' ' + thread.name; // screen() escapes the title
 
     return RW.ui.screen({
       title:  title,
@@ -360,7 +352,6 @@
   // ---- pick a canned reply pool for this thread ----
   function cannedReply(chatId) {
     if (chatId === 'support') return pick(SUPPORT_REPLIES);
-    if (chatId === 'courier') return pick(COURIER_REPLIES);
     return pick(CANNED_REPLIES);
   }
 

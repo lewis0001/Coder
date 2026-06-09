@@ -446,15 +446,15 @@
     var feed = filteredArticles();
 
     // Filter chips using RW.ui.chips
-    var srcItems = SOURCES.map(function (s) { return { label: s, value: s }; });
-    var catItems = CATEGORIES.map(function (c) { return { label: c, value: c }; });
+    var srcItems = SOURCES.map(function (s) { return { label: s, value: 'src:' + s }; });
+    var catItems = CATEGORIES.map(function (c) { return { label: c, value: 'cat:' + c }; });
 
     var filterBar =
       '<div style="margin-bottom:2px">' +
         '<div class="subtle" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Source</div>' +
-        RW.ui.chips(srcItems, f.source, 'newsFilter', true) +
+        RW.ui.chips(srcItems, 'src:' + (f.source || 'All'), 'newsFilter', true) +
         '<div class="subtle" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;margin-top:2px">Category</div>' +
-        RW.ui.chips(catItems, f.category, 'newsFilter') +
+        RW.ui.chips(catItems, 'cat:' + (f.category || 'All'), 'newsFilter') +
       '</div>';
 
     var feedHtml = feed.length === 0
@@ -574,15 +574,11 @@
       // RW.ui.chips fires data-v; legacy data-source / data-category also handled
       newsFilter: function (el) {
         var f = getFilter();
-        // RW.ui.chips puts the value in data-v; determine which filter by context
-        if (el.dataset.v !== undefined) {
-          var v = el.dataset.v;
-          if (SOURCES.indexOf(v) !== -1)     { f.source = v; }
-          else if (CATEGORIES.indexOf(v) !== -1) { f.category = v; }
-        }
-        // legacy fallback
-        if (el.dataset.source   !== undefined) { f.source   = el.dataset.source; }
-        if (el.dataset.category !== undefined) { f.category = el.dataset.category; }
+        var v = el.dataset.v || '';
+        // values are namespaced 'src:X' / 'cat:X' so each row's "All" only
+        // clears its own filter (they used to collide on the shared value).
+        if (v.indexOf('src:') === 0)      { f.source   = v.slice(4); }
+        else if (v.indexOf('cat:') === 0) { f.category = v.slice(4); }
         RW.S.newsFilter = f;
         RW.store.save();
         RW.render();

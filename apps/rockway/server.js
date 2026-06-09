@@ -164,11 +164,19 @@ http.createServer(function (req, res) {
     return;
   }
 
-  // Static file serving (unchanged behaviour)
-  var urlPath = decodeURIComponent(req.url.split('?')[0]);
+  // Static file serving
+  var urlPath;
+  try {
+    urlPath = decodeURIComponent(req.url.split('?')[0]);
+  } catch (e) {
+    // malformed percent-encoding (e.g. "/%") must not crash the process
+    res.writeHead(400, { 'Content-Type': 'text/plain' });
+    res.end('Bad request');
+    return;
+  }
   if (urlPath === '/') urlPath = '/index.html';
   var filePath = path.join(ROOT, path.normalize(urlPath));
-  if (!filePath.startsWith(ROOT)) { res.writeHead(403); res.end('Forbidden'); return; }
+  if (filePath !== ROOT && !filePath.startsWith(ROOT + path.sep)) { res.writeHead(403); res.end('Forbidden'); return; }
   fs.readFile(filePath, function (err, data) {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain' }); res.end('Not found'); return; }
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(filePath)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });

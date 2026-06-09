@@ -29,13 +29,6 @@
     return found ? found.emoji : '⭐';
   }
 
-  // Stable fake views count based on biz id so it doesn't change on each render
-  function fakeViews(biz) {
-    var hash = 0;
-    var s = (biz.id || '') + (biz.name || '');
-    for (var i = 0; i < s.length; i++) { hash = (hash * 31 + s.charCodeAt(i)) & 0xffff; }
-    return 120 + (hash % 380);
-  }
 
   // Format a timestamp as a short date/time string
   function fmtWhen(t) {
@@ -51,42 +44,6 @@
     return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' · ' + h + ':' + mm + ampm;
   }
 
-  // Build demo incoming bookings after publish
-  function seedDemoBookings(biz) {
-    var svcs = biz.services || [];
-    var svc0 = svcs[0] || { name: 'Service', price: 20 };
-    var svc1 = svcs[1] || svc0;
-    var now = Date.now();
-    return [
-      {
-        id: uid(),
-        ref: 'RW-' + String(Math.floor(1000 + Math.random() * 8999)),
-        t: now - 3600000 * 2,
-        customer: 'Lucia G.',
-        service: svc0.name,
-        when: now + 86400000 * 2,
-        status: 'Requested',
-      },
-      {
-        id: uid(),
-        ref: 'RW-' + String(Math.floor(1000 + Math.random() * 8999)),
-        t: now - 3600000 * 5,
-        customer: 'Marco A.',
-        service: svc1.name,
-        when: now + 86400000 * 4,
-        status: 'Requested',
-      },
-      {
-        id: uid(),
-        ref: 'RW-' + String(Math.floor(1000 + Math.random() * 8999)),
-        t: now - 3600000 * 14,
-        customer: 'Deborah S.',
-        service: svc0.name,
-        when: now + 86400000 * 6,
-        status: 'Requested',
-      },
-    ];
-  }
 
   // ---- status pill ----
   function statusPill(status) {
@@ -186,7 +143,6 @@
     var bookings = RW.S.bizBookings;
 
     // Header card
-    var views = fakeViews(biz);
     var confirmedCount = bookings.filter(function (b) { return b.status === 'Confirmed'; }).length;
     var totalCount = bookings.length;
 
@@ -211,7 +167,7 @@
 
     // Quick stats
     var statsGrid = '<div class="grid2" style="margin-bottom:12px">' +
-      '<div class="stat"><div class="n num">' + views + '</div><div class="l">Profile views</div></div>' +
+      '<div class="stat"><div class="n">🟢</div><div class="l">Live in Discover</div></div>' +
       '<div class="stat"><div class="n num">' + totalCount + '</div><div class="l">Total bookings</div></div>' +
       '</div>' +
       '<div class="grid2" style="margin-bottom:12px">' +
@@ -420,7 +376,7 @@
         t: Date.now(),
       };
 
-      RW.S.bizBookings = seedDemoBookings(RW.S.myBusiness);
+      RW.S.bizBookings = [];
       RW.S._bizDraftCat = null;
       RW.store.save();
       RW.toast("You’re live on Rockway!");

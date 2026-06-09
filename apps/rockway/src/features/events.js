@@ -119,7 +119,7 @@
       date: '2026-10-03',
       venue: "St. Michael's Cave",
       area: 'Upper Rock',
-      emoji: '🩸',
+      emoji: '🎻',
       price: 30,
       cat: 'music',
       desc: "Classical music echoes through Gibraltar's most dramatic natural amphitheatre — a 60-metre limestone grotto.",
