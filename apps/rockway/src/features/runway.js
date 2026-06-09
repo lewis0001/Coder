@@ -31,6 +31,13 @@
     const m = /(\d{1,2}):(\d{2})/.exec(String(s || ''));
     return m ? (parseInt(m[1], 10) % 24) * 60 + parseInt(m[2], 10) : null;
   }
+  // 507 -> '8h 27m', 75 -> '1h 15m', 42 -> '42 min'
+  function humanMins(m) {
+    m = Math.max(0, Math.round(m));
+    if (m < 100) return m + ' min';
+    return Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm';
+  }
+
   function hhmm(min) {
     min = Math.max(0, Math.min(1439, Math.round(min)));
     const h = Math.floor(min / 60), m = min % 60;
@@ -164,7 +171,7 @@
       return '<div class="card">' + signalHead('var(--green)') +
         '<div class="display" style="font-size:26px;font-weight:600;margin:7px 0 6px">Crossing open</div>' +
         '<div style="font-size:13.5px;color:var(--slate);line-height:1.55">Next closure in ' +
-        '<span class="num display" style="font-size:21px;font-weight:600;color:var(--ink)">~' + (w.start - n) + ' min</span>' +
+        '<span class="num display" style="font-size:21px;font-weight:600;color:var(--ink)">~' + humanMins(w.start - n) + '</span>' +
         ' · <b class="num">' + hhmm(w.start) + '</b> — ' + esc(flightLine(m)) + '</div></div>';
     }
     return '<div class="card">' + signalHead('var(--green)') +
@@ -348,7 +355,7 @@
       '<div class="lead" style="background:var(--gold-soft)">🛬</div>' +
       '<div class="body"><div class="name">Runway crossing closes ~<span class="num">' + hhmm(w.start) + '</span></div>' +
       '<div class="sub">' + esc(m.flight) + (m.kind === 'arrival' ? ' arriving from ' : ' departing to ') + esc(m.place) +
-      ' · in ~<span class="num">' + (w.start - n) + '</span> min</div></div>' +
+      ' · in ~<span class="num">' + humanMins(w.start - n) + '</span></div></div>' +
       '<div class="trail muted">›</div></div>';
   }
 

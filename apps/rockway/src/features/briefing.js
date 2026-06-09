@@ -106,7 +106,7 @@
         const v = nx[msKeys[i]];
         if (typeof v === 'number' && v > 1e12) { ms = v; break; }
       }
-      const strKeys = ['time', 'sched', 'at', 'label'];
+      const strKeys = ['start', 'time', 'sched', 'at', 'label'];
       for (let i = 0; i < strKeys.length; i++) {
         const v = nx[strKeys[i]];
         if (typeof v === 'string' && /\d{1,2}:\d{2}/.test(v)) { timeStr = (v.match(/\d{1,2}:\d{2}/) || [''])[0]; break; }
@@ -117,7 +117,8 @@
         catch (e) { timeStr = new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
       }
     }
-    const mins = ms != null ? Math.round((ms - Date.now()) / 60000) : null;
+    let mins = ms != null ? Math.round((ms - Date.now()) / 60000) : null;
+    if (mins == null && nx && typeof nx.minsUntil === 'number') mins = Math.round(nx.minsUntil);
     if (!closed && !timeStr && mins == null) return null;
     return { closed, mins, time: timeStr, flight };
   }

@@ -136,7 +136,7 @@ register('news', 5 * 60 * 1000, (done) => {
       if (!title) continue;
       items.push({ title, link: field('link') || field('guid'), date: field('pubDate') });
     }
-    done(items.length ? { ok: true, items } : { ok: false, items: [] });
+    done(items.length ? { ok: true, fetched: Date.now(), items } : { ok: false, items: [] });
   });
 });
 

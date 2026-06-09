@@ -22,25 +22,21 @@ delivery ops, no fabricated "live" data.
   store contract · smoke hardened (booking E2E etc.)
 
 ## Next up
-### Phase 1 — Honesty & brand polish (agents, one file each)
-- [ ] News: remove fabricated seed articles; live-first; Example labels
-- [ ] Jobs: UGC reframe; no fake vacancies at real employers
-- [ ] Property: Example labels; de-brand fakes from real agents
-- [ ] Discover: "Example" badge on seed businesses (pre-"claim listing")
-- [ ] Frontier: honest single-device copy until backend
-- [ ] Account: wire or remove the 4 dead settings rows
-- [ ] Palette discipline pass (one red, gold accent; kill stray greens/blues)
+### Phase 1 — Honesty & brand polish ✅ DONE (9-agent wave)
+- [x] News live-first (fabrications deleted) · Jobs UGC board (de-branded) ·
+  Property de-branded + list-your-property · Discover Example badges + search ·
+  Frontier honest copy + holiday flags · Account fully wired (toggles,
+  addresses, help/about) · design system v2 palette discipline (integrator)
 
-### Phase 2 — Novel live data (verified sources; one agent per feature)
-- [ ] Live weather + Levanter meter (Open-Meteo)
-- [ ] Runway-closure countdown (gibraltarairport.gi proxy) ← signature
-- [ ] Tides & beach conditions (Open-Meteo marine)
-- [ ] "Today on the Rock" morning briefing card
-- [ ] GI + Andalucía holidays → frontier risk flags (Nager.Date)
-- [ ] Duty pharmacy today (dutypharmacy.gi proxy)
-- [ ] Gibraltar FC fixtures (TheSportsDB)
-- [ ] Ships in the Bay (aisstream.io → /api/bay → Rock hero dots)
-- [ ] One Road bus strip (track.bus.gi busTracker.php proxy + fallback)
+### Phase 2 — Novel live data ✅ DONE (this wave; all six proxies verified live)
+- [x] Weather & Sea: live Open-Meteo + Levanter meter dial + 24h sparkline +
+  tide ribbon + beaches + UV; overrides RW.api.weather app-wide
+- [x] Runway: live schedule → closure countdown + SVG day strip + Rock hook
+- [x] "Today on the Rock" composed briefing (homeCard + #/today)
+- [x] Holidays GI/ES → frontier flags + briefing (Nager.Date)
+- [x] Duty pharmacy (dutypharmacy.gi) · Fixtures matchday ribbon (TheSportsDB)
+- [ ] DEFERRED: Ships in the Bay (aisstream needs a key) · One Road bus strip
+  (needs a daytime capture of track.bus.gi markers) — see PLAN.md
 
 ### Phase 3 — Marketplace depth
 - [ ] Booking cancel/reschedule + owner↔customer status sync

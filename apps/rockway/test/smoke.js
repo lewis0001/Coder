@@ -57,7 +57,7 @@ vm.createContext(sandbox);
 
 /* ---------------- load core + features ---------------- */
 const FILES = [
-  'src/core/util.js', 'src/core/store.js', 'src/core/registry.js', 'src/core/ui.js', 'src/core/rock.js', 'src/core/router.js',
+  'src/core/util.js', 'src/core/store.js', 'src/core/registry.js', 'src/core/ui.js', 'src/core/rock.js', 'src/core/live.js', 'src/core/router.js',
 ];
 // derive feature list from boot manifest so test stays in sync
 const boot = fs.readFileSync(path.join(ROOT, 'src/core/boot.js'), 'utf8');
@@ -85,7 +85,7 @@ const routes = ['#/', '#/activity', '#/account', '#/discover', '#/business'];
 features.forEach((f) => { if (f.showTile) routes.push('#/' + f.id); });
 // a Discover business-detail (the booking screen) + a chat thread
 if (RW.api && RW.api.businesses && RW.api.businesses()[0]) routes.push('#/discover/' + RW.api.businesses()[0].id);
-routes.push('#/chat/c1');
+routes.push('#/chat/c1', '#/today', '#/account/help', '#/account/about');
 
 routes.forEach((r) => {
   location.hash = r;
@@ -93,7 +93,7 @@ routes.forEach((r) => {
     RW.render();
     const html = elements.app ? elements.app.innerHTML : '';
     if (!html || html.length < 200) fail(r + ' rendered too little (' + html.length + ' chars)');
-    else if (/undefined|\[object Object\]|NaN|native code|&amp;amp;/.test(html)) fail(r + ' contains undefined/NaN/object/function/double-escape leakage');
+    else if (/undefined|\[object Object\]|NaN|native code|&amp;amp;|went wrong loading/.test(html)) fail(r + ' contains undefined/NaN/object/function/double-escape leakage');
     else ok(r + ' (' + html.length + ' chars)');
   } catch (e) { fail(r + ' threw → ' + e.message); }
 });
