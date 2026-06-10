@@ -58,6 +58,26 @@ delivery ops, no fabricated "live" data.
 - [x] PWA: manifest + brand icons + service worker (offline shell verified:
   full app renders with networking disabled; /api network-first w/ fallback)
 
+## Wave A — community + concierge ✅ DONE (built solo)
+> Strategy shift (docs/research/ideas/compete-findings.md): **Gib Local** already
+> owns the live-territory niche (border/weather/bus/flights), so those feeds are
+> table-stakes. Rockway's wedge = **booking marketplace + community + concierge +
+> design**. Build there, keep feeds excellent but as supporting cast.
+- [x] Honesty fix: Frontier EES — states EES does NOT apply at the land border.
+- [x] **Frontier car-pool** — honest lift board (offers/requests, direction,
+  days/time, seats, match hint), no money movement. Verified white space.
+- [x] **Lost & Found + Free-stuff** — UGC noticeboard (lost/found/free).
+- [x] **Ask Rockway** concierge — no-LLM intent engine over live feeds +
+  fuzzy directory; composes answers; ES/Llanito synonyms; home's primary CTA.
+- [x] Research: 6 idea lanes + synthesised BACKLOG.md + competitive findings.
+
+## Wave B — next (some need the server/keys)
+- [ ] Web Push notifications (VAPID) — needs subscription storage (pairs w/ Supabase)
+- [ ] Map of the Rock (MapLibre + Protomaps, ~$0.50/mo) — canvas for planner/Discover
+- [ ] "One Road" live bus strip (busTracker.php c<N>.png markers — format captured)
+- [ ] Cruise-day advisory; affiliate tickets/eSIM + cruise "I have X hours" planner
+- [ ] Booking polish: reminders, "book again", waitlist (vs Booksy/Fresha)
+
 ### Phase 4 — Multiplayer & launch (unchanged — see docs/PLAN.md)
 - [ ] Supabase (auth + shared listings/bookings/reviews) · moderation ·
   monetization (featured/job posts; verify Stripe-GI) · legal · deploy
