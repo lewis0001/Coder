@@ -45,7 +45,7 @@ delivery ops, no fabricated "live" data.
 - [x] "Limestone & Key" v2: Fraunces editorial display face, hairline surfaces,
   de-glowed buttons, ink chips, dot-indicator tab bar, warm limestone canvas
 
-### Phase 3 — Booking depth ✅ MOSTLY DONE (built solo; smoke-locked)
+### Phase 3 — Booking depth ✅ DONE (built solo; smoke-locked)
 - [x] Discover: double-booking prevention (takenSlots) + whenIso/slot on
   bookings + review write-back (star composer, your-review-first, delete) +
   self-bookings mirror into the owner inbox
@@ -53,37 +53,19 @@ delivery ops, no fabricated "live" data.
   status line + Requested/Confirmed/Declined/Cancelled pills + dimming
 - [x] Business: this-week schedule strip, block-out manager, Accept/Decline →
   sync the customer's booking status; fixed fmtWhen NaN
-- [ ] Global search across all registries (home search bar → unified results)
-- [ ] PWA manifest + service-worker shell cache + per-screen share buttons
+- [x] Global search: provider bus (RW.registerSearch) + 9 feature providers +
+  #/search surface (live typing, grouped results) + home search bar
+- [x] PWA: manifest + brand icons + service worker (offline shell verified:
+  full app renders with networking disabled; /api network-first w/ fallback)
 
 ### Phase 4 — Multiplayer & launch (unchanged — see docs/PLAN.md)
 - [ ] Supabase (auth + shared listings/bookings/reviews) · moderation ·
   monetization (featured/job posts; verify Stripe-GI) · legal · deploy
 
 
-### Phase 2 — Novel live data ✅ DONE (this wave; all six proxies verified live)
-- [x] Weather & Sea: live Open-Meteo + Levanter meter dial + 24h sparkline +
-  tide ribbon + beaches + UV; overrides RW.api.weather app-wide
-- [x] Runway: live schedule → closure countdown + SVG day strip + Rock hook
-- [x] "Today on the Rock" composed briefing (homeCard + #/today)
-- [x] Holidays GI/ES → frontier flags + briefing (Nager.Date)
-- [x] Duty pharmacy (dutypharmacy.gi) · Fixtures matchday ribbon (TheSportsDB)
-- [ ] DEFERRED: Ships in the Bay (aisstream needs a key) · One Road bus strip
-  (needs a daytime capture of track.bus.gi markers) — see PLAN.md
-
-### Phase 3 — Marketplace depth
-- [ ] Booking cancel/reschedule + owner↔customer status sync
-- [ ] Double-booking prevention (own business blocks taken slots)
-- [ ] Review write-back after a booking
-- [ ] Global search across all registries
-- [ ] PWA manifest + service worker + share buttons
-
-### Phase 4 — Multiplayer & launch
-- [ ] Supabase (magic-link auth + shared listings/bookings/reports/reviews)
-- [ ] Moderation: report-content button + founder queue
-- [ ] Monetization: Featured listing £19/mo · job post £29 (verify Stripe-GI;
-  PayPal/MoR fallback)
-- [ ] T&Cs/privacy · Plausible analytics · deploy (static + proxy) + domain
+### Deferred live-data items (see PLAN.md)
+- [ ] Ships in the Bay (aisstream.io needs a free key from a GitHub login)
+- [ ] One Road bus strip (needs one daytime capture of track.bus.gi markers)
 
 ## Continuity
 - Manifest: src/core/boot.js. New persisted state → defaults() in store.js.
