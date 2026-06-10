@@ -16,6 +16,16 @@
       '<path d="M6.4 10.2v9.4h11.2v-9.4" ' + S + '/>' +
       '<path d="M10.4 19.6v-5h3.2v5" ' + G + '/>'
     ),
+    lostfound: wrap(
+      '<path d="M10.4 10.4m-5 0a5 5 0 1 0 10 0a5 5 0 1 0 -10 0" ' + S + '/>' +
+      '<path d="M14 14l5 5" ' + A + '/>' +
+      '<path d="M8 10.4h4.8M10.4 8v4.8" ' + G + '/>'
+    ),
+    carpool: wrap(
+      '<path d="M4.6 14.4l1.4-4.2a2 2 0 0 1 1.9-1.4h8.2a2 2 0 0 1 1.9 1.4l1.4 4.2" ' + S + '/>' +
+      '<path d="M4 14.4h16v3.4a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1v-.8H7.6v.8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" ' + S + '/>' +
+      '<path d="M7.2 16.1h.01M16.8 16.1h.01" stroke="var(--brand)" stroke-width="2.4" stroke-linecap="round"/>'
+    ),
     // The Gibraltar key — brand mark, used on the Discover hero tile.
     key: wrap(
       '<circle cx="6.4" cy="12" r="3.1" ' + S + '/>' +

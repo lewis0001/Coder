@@ -26,6 +26,8 @@
 
       // ---- community + listings (all user-generated / automatable) ----
       frontierReports: [],         // crowd-sourced border reports: {id,t,lane,level,note}
+      lifts: [],                   // frontier car-pool board: {id,t,kind:'offer'|'request',dir,from,to,days,time,seats,note,by}
+      lostfound: [],               // lost & found + free-stuff board: {id,t,kind,title,where,note,contact}
       listings: [],                // marketplace classifieds the user posted
       savedListings: [],           // marketplace saved items
       jobApps: [],                 // job applications

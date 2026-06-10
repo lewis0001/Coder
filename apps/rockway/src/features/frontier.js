@@ -44,8 +44,10 @@
     } else if (RW.live.status('holidays') === 'loading') {
       pills.push('<span class="pill-status neutral skel">Checking holiday calendar…</span>');
     }
-    // permanent quiet heads-up (research: EES biometrics phase in through 2026)
-    pills.push('<span class="pill-status info">🛂 EES biometric checks rolling out 2026</span>');
+    // permanent quiet heads-up — EES is the EU biometric border system that
+    // went live elsewhere in 2026, but under the 11-Jun-2025 UK–EU treaty it is
+    // NOT applied at the Gibraltar land frontier (residents/ID holders exempt).
+    pills.push('<span class="pill-status info" title="UK–EU treaty 11 Jun 2025 + Gov Technical Notice 748/2025">🛂 No EES checks at the land frontier</span>');
     return '<div class="chips" style="margin:0 0 10px">' + pills.join('') + '</div>' +
       (sourced ? '<div class="muted tiny" style="margin:-4px 0 10px">Holidays · Nager.Date</div>' : '');
   }

@@ -29,11 +29,13 @@
     'src/features/briefing.js',   // "Today on the Rock" composed morning card
     // automatable local features
     'src/features/frontier.js',   // live cameras + community crowd-reports
+    'src/features/carpool.js',    // frontier lift board (honest noticeboard)
     'src/features/marketplace.js',
     'src/features/jobs.js',
     'src/features/property.js',
     'src/features/events.js',
     'src/features/explore.js',
+    'src/features/lostfound.js',  // lost & found + free-stuff noticeboard
     'src/features/news.js',        // live Gibraltar Chronicle RSS (with fallback)
     'src/features/chat.js',
   ];

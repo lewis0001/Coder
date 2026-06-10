@@ -196,6 +196,37 @@ RW.render();
 if ((elements.app.innerHTML || '').indexOf('global-search') === -1) fail('search screen missing input');
 else ok('search screen renders');
 
+// carpool: post a lift, it lands on the board + in search
+location.hash = '#/carpool';
+act('cpCompose', {});
+act('cpDir', { v: 'into-gib' });
+(function () {
+  const set = (id, v) => { const e = makeEl(); e.value = v; elements[id] = e; };
+  set('cp-from', 'Estepona'); set('cp-to', 'Europort'); set('cp-time', '08:00'); set('cp-seats', '2'); set('cp-note', 'Share fuel');
+})();
+act('cpPost', {});
+if (!(RW.S.lifts || []).length) fail('carpool: lift not posted');
+else ok('carpool lift posted (' + RW.S.lifts.length + ')');
+if (!RW.searchAll('estepona').some((r) => r.group === 'Car-pool')) fail('carpool: not searchable');
+else ok('carpool lift is searchable');
+
+// lost & found: post a notice
+location.hash = '#/lostfound';
+act('lfCompose', {});
+act('lfKind', { v: 'lost' });
+(function () { const e = makeEl(); e.value = 'Tabby cat, red collar'; elements['lf-title'] = e; const w = makeEl(); w.value = 'Catalan Bay'; elements['lf-where'] = w; })();
+act('lfPost', {});
+if (!(RW.S.lostfound || []).length) fail('lostfound: notice not posted');
+else ok('lostfound notice posted');
+
+// new tiles render
+['#/carpool', '#/lostfound'].forEach((r) => {
+  location.hash = r; RW.render();
+  const h = elements.app.innerHTML || '';
+  if (h.length < 400 || /undefined|NaN|native code/.test(h)) fail(r + ' render issue');
+  else ok(r + ' renders (' + h.length + ')');
+});
+
 // the user's published business must appear in Discover
 RW.S.myBusiness = { id: 'mybiz', name: 'Test Grooming Co', category: 'Pets', emoji: '🐾', area: 'Town', rating: 'New', reviews: 0, services: [{ id: 'ms1', name: 'Trim', price: 10, durationMin: 30 }], t: Date.now() };
 location.hash = '#/discover';

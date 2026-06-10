@@ -54,6 +54,7 @@
   /* ---- the launchpad ---- */
   const TILES = [
     { id: 'frontier', label: 'Frontier' },
+    { id: 'carpool', label: 'Car-pool' },
     { id: 'weather', label: 'Weather & Sea' },
     { id: 'runway', label: 'Runway' },
     { id: 'today', label: 'Today', route: '#/today' },
@@ -63,6 +64,7 @@
     { id: 'marketplace', label: 'Buy & Sell' },
     { id: 'jobs', label: 'Jobs' },
     { id: 'property', label: 'Property' },
+    { id: 'lostfound', label: 'Lost & Found' },
     { id: 'chat', label: 'Chat' },
     { id: 'business', label: 'For Business', route: '#/business' },
   ];
