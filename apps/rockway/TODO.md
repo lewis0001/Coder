@@ -74,9 +74,12 @@ delivery ops, no fabricated "live" data.
 ## Wave B — next (some need the server/keys)
 - [ ] Web Push notifications (VAPID) — needs subscription storage (pairs w/ Supabase)
 - [ ] Map of the Rock (MapLibre + Protomaps, ~$0.50/mo) — canvas for planner/Discover
-- [ ] "One Road" live bus strip (busTracker.php c<N>.png markers — format captured)
+- [x] **Move / live bus tracker** — /api/bus proxy (busTracker.php c<N>.png) →
+  live "N running" per route; taxi (GTA), cable-car-closed, walk/car-pool. DONE & live-verified.
 - [ ] Cruise-day advisory; affiliate tickets/eSIM + cruise "I have X hours" planner
-- [ ] Booking polish: reminders, "book again", waitlist (vs Booksy/Fresha)
+- [x] Booking polish: one-tap **"Book again"** (deep-links + auto-opens slot picker)
+- [ ] Booking polish remainder: reminders (needs Web Push), waitlist for full slots
+- [ ] Cruise-day advisory — DEFERRED: needs the founder's real port calendar (honest-data rule)
 
 ### Phase 4 — Multiplayer & launch (unchanged — see docs/PLAN.md)
 - [ ] Supabase (auth + shared listings/bookings/reviews) · moderation ·
