@@ -38,11 +38,15 @@
     var panel = '';
     if (open) {
       var canChange = (b.status === 'Requested' || b.status === 'Confirmed');
+      // "Book again" for finished business: cancelled, declined, or in the past
+      var today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Gibraltar' });
+      var finished = b.status === 'Cancelled' || b.status === 'Declined' || (b.whenIso && b.whenIso < today);
       panel =
         '<div style="border-top:1px solid var(--line);margin-top:4px;padding-top:10px">' +
         '<div style="font-size:13px;color:var(--ash);margin-bottom:10px">' + esc(statusLine(b.status)) + '</div>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
         '<button class="btn sm ghost" data-act="nav" data-route="#/discover/' + esc(b.bizId || '') + '">View business</button>' +
+        (finished ? '<button class="btn sm" data-act="activityRebook" data-id="' + esc(b.id) + '">Book again</button>' : '') +
         (canChange ? '<button class="btn sm ghost" data-act="activityResched" data-id="' + esc(b.id) + '">Change time</button>' : '') +
         (canChange ? '<button class="btn sm" data-act="activityCancel" data-id="' + esc(b.id) + '">Cancel booking</button>' : '') +
         '</div></div>';
@@ -187,6 +191,12 @@
         RW.store.save();
         RW.toast('Booking cancelled.');
         RW.render();
+      },
+      activityRebook: function (el) {
+        var id = el.dataset.id;
+        var b = (RW.S.bookings || []).filter(function (x) { return x.id === id; })[0];
+        if (!b) return;
+        RW.go('#/discover/' + (b.bizId || '') + (b.svcId ? '/book/' + b.svcId : ''));
       },
       activityResched: function (el) {
         var id = el.dataset.id;

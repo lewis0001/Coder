@@ -238,6 +238,18 @@ if (askHtml.indexOf('frontier right now') === -1 || askHtml.indexOf('Paws') === 
 else ok('ask composes a live answer + directory results');
 if (/undefined|NaN|native code|&amp;amp;/.test(askHtml)) fail('ask: output leak');
 
+// booking polish: a finished booking exposes "Book again" → deep-links with svcId
+RW.S.bookings.push({ id: 'past1', ref: 'BK0002', t: Date.now() - 5*86400000, bizId: 'biz-pc', bizName: 'Paws & Claws Grooming', svcId: 's-pc-1', service: 'Full Groom (small breed)', price: '£35.00', when: 'last week', whenIso: '2026-01-01', slot: '10:00', status: 'Confirmed' });
+location.hash = '#/activity'; RW.render();
+act('activityOpen', { id: 'past1' });
+const actHtml = elements.app.innerHTML;
+if (actHtml.indexOf('Book again') === -1) fail('rebook: "Book again" not shown on a past booking');
+else ok('rebook button shows on past booking');
+act('activityRebook', { id: 'past1' });
+if ((location.hash || '').indexOf('/book/s-pc-1') === -1) fail('rebook: did not deep-link to the service'); else ok('rebook deep-links to the service slot picker');
+location.hash = '#/discover/biz-pc/book/s-pc-1'; RW.render();
+if ((elements.app.innerHTML || '').indexOf('Choose') === -1) fail('rebook: slot picker did not auto-open'); else ok('rebook auto-opens the slot picker');
+
 // new tiles render
 ['#/carpool', '#/lostfound', '#/ask'].forEach((r) => {
   location.hash = r; RW.render();

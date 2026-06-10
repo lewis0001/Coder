@@ -784,6 +784,16 @@
   function render(parts) {
     var bizId = parts && parts[0];
     if (bizId && getBiz(bizId)) {
+      // deep-link "#/discover/<bizId>/book/<svcId>" auto-opens that slot picker
+      // (used by Activity's one-tap "Book again").
+      if (parts[1] === 'book' && parts[2]) {
+        var bk = bizId + '::' + parts[2];
+        if (openBookingKey !== bk) {
+          openBookingKey = bk;
+          var days = nextDays(5);
+          if (!selectedDay[bk]) selectedDay[bk] = days[0].iso;
+        }
+      }
       return renderDetail(bizId);
     }
     openBookingKey = null; // reset booking panel when back on list
@@ -889,6 +899,7 @@
           t:       Date.now(),
           bizId:   bizId,
           bizName: biz.name,
+          svcId:   svc.id,
           service: svc.name,
           price:   svc.price > 0 ? '£' + svc.price.toFixed(2) : 'Free',
           when:    dayLabel + ' · ' + slot,
