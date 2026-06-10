@@ -45,14 +45,16 @@ delivery ops, no fabricated "live" data.
 - [x] "Limestone & Key" v2: Fraunces editorial display face, hairline surfaces,
   de-glowed buttons, ink chips, dot-indicator tab bar, warm limestone canvas
 
-### Phase 3 — Booking depth ⏳ NOT STARTED (agents hit session limit, 0 tokens)
-Store contract ready (RW.S.reviews added; bookings to carry whenIso/slot):
-- [ ] Discover: double-booking prevention (takenSlots) + machine-readable slot
-  on bookings + customer review write-back after a confirmed/past booking
-- [ ] Activity: booking detail with Cancel + Change-time; status pills/dimming
-- [ ] Business: this-week schedule, block-out times, Accept/Decline → sync the
-  customer's booking status
-- [ ] Global search across all registries · PWA manifest + service worker
+### Phase 3 — Booking depth ✅ MOSTLY DONE (built solo; smoke-locked)
+- [x] Discover: double-booking prevention (takenSlots) + whenIso/slot on
+  bookings + review write-back (star composer, your-review-first, delete) +
+  self-bookings mirror into the owner inbox
+- [x] Activity: expandable booking cards — Cancel / Change time / View business;
+  status line + Requested/Confirmed/Declined/Cancelled pills + dimming
+- [x] Business: this-week schedule strip, block-out manager, Accept/Decline →
+  sync the customer's booking status; fixed fmtWhen NaN
+- [ ] Global search across all registries (home search bar → unified results)
+- [ ] PWA manifest + service-worker shell cache + per-screen share buttons
 
 ### Phase 4 — Multiplayer & launch (unchanged — see docs/PLAN.md)
 - [ ] Supabase (auth + shared listings/bookings/reviews) · moderation ·
