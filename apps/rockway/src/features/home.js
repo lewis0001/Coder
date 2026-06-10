@@ -106,8 +106,8 @@
     const featureCards = RW.homeCards().map((f) => { try { return f.homeCard() || ''; } catch (e) { return ''; } }).join('');
 
     const body =
-      '<button class="search-cta" style="margin-top:14px" data-act="nav" data-route="#/search">' +
-      '<span>🔎</span><span>Search the whole Rock…</span><span class="go">Search</span></button>' +
+      '<button class="search-cta" style="margin-top:14px" data-act="nav" data-route="#/ask">' +
+      '<span>✨</span><span>Ask Rockway anything…</span><span class="go">Ask</span></button>' +
       '<div style="margin-top:12px">' + launchpad() + '</div>' +
       (mine ? '<div class="section-title">Your Rockway</div>' + mine : '') +
       (featureCards ? '<div class="section-title">On the Rock today</div>' + featureCards : '') +

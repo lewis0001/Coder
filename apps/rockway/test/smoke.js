@@ -219,8 +219,27 @@ act('lfPost', {});
 if (!(RW.S.lostfound || []).length) fail('lostfound: notice not posted');
 else ok('lostfound notice posted');
 
+// Ask Rockway concierge: intent answers + composition + directory fallback
+location.hash = '#/ask';
+RW.render();
+if ((elements.app.innerHTML || '').indexOf('ask-input') === -1) fail('ask: input missing');
+else ok('ask screen renders');
+act('askSuggest', { v: 'how is the frontier' });
+let askHtml = elements.app.innerHTML;
+if (askHtml.indexOf('frontier right now') === -1) fail('ask: no frontier intent answer');
+else ok('ask answers the frontier intent');
+act('askSuggest', { v: 'dog groomer' });
+askHtml = elements.app.innerHTML;
+if (askHtml.indexOf('Paws') === -1) fail('ask: directory fallback missing for "dog groomer"');
+else ok('ask falls back to the directory');
+act('askSuggest', { v: 'frontier and a groomer' });
+askHtml = elements.app.innerHTML;
+if (askHtml.indexOf('frontier right now') === -1 || askHtml.indexOf('Paws') === -1) fail('ask: did not compose intent + directory');
+else ok('ask composes a live answer + directory results');
+if (/undefined|NaN|native code|&amp;amp;/.test(askHtml)) fail('ask: output leak');
+
 // new tiles render
-['#/carpool', '#/lostfound'].forEach((r) => {
+['#/carpool', '#/lostfound', '#/ask'].forEach((r) => {
   location.hash = r; RW.render();
   const h = elements.app.innerHTML || '';
   if (h.length < 400 || /undefined|NaN|native code/.test(h)) fail(r + ' render issue');
