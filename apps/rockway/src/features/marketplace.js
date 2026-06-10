@@ -115,7 +115,7 @@
 
   function allListings() {
     // user listings newest-first, then seed (oldest first as posted)
-    var userListings = (RW.S.listings || []).slice().reverse();
+    var userListings = (RW.S.listings || []).filter(function (l) { return l.type !== 'property'; }).slice().reverse();
     return userListings.concat(SEED);
   }
 
@@ -395,4 +395,16 @@
       },
     },
   });
+
+  // ---- global search: classifieds ----
+  RW.registerSearch(function (q) {
+    var out = [];
+    allListings().forEach(function (l) {
+      if (l.type === 'property') return;
+      var hay = (String(l.title || '') + ' ' + String(l.category || '') + ' ' + String(l.area || '')).toLowerCase();
+      if (hay.indexOf(q) !== -1) out.push({ group: 'Buy & Sell', label: l.title, sub: (l.price || '') + ' \u00b7 ' + (l.area || 'Gibraltar'), route: '#/marketplace', lead: '\ud83c\udff7\ufe0f' });
+    });
+    return out;
+  });
+
 })(window.RW);

@@ -322,4 +322,16 @@
       },
     },
   });
+
+  // ---- global search: live headlines ----
+  RW.registerSearch(function (q) {
+    var p = RW.live && RW.live.get && RW.live.get('news');
+    if (!p || !p.items) return [];
+    return p.items.filter(function (it) {
+      return String(it.title).toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 5).map(function (it) {
+      return { group: 'News (live)', label: it.title, sub: 'Gibraltar Chronicle \u00b7 opens article', route: it.link, external: true, lead: '\ud83d\udcf0' };
+    });
+  });
+
 })(window.RW);

@@ -405,4 +405,16 @@
       },
     },
   });
+
+  // ---- global search: chat threads ----
+  RW.registerSearch(function (q) {
+    var out = [];
+    PINNED.concat(RW.S.contacts || []).forEach(function (c) {
+      if (String(c.name).toLowerCase().indexOf(q) !== -1) {
+        out.push({ group: 'Chat', label: c.name, sub: 'Open conversation', route: '#/chat/' + c.id, lead: c.emoji || '\ud83d\udcac' });
+      }
+    });
+    return out;
+  });
+
 })(window.RW);

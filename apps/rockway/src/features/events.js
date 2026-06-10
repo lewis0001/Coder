@@ -461,4 +461,16 @@
       },
     },
   });
+
+  // ---- global search: events ----
+  RW.registerSearch(function (q) {
+    return EVENTS.filter(function (e) {
+      return String(e.name).toLowerCase().indexOf(q) !== -1 ||
+        String(e.venue).toLowerCase().indexOf(q) !== -1 ||
+        String(e.cat || '').toLowerCase().indexOf(q) !== -1;
+    }).map(function (e) {
+      return { group: 'What\u2019s On', label: e.name, sub: fmtDate(e.date) + ' \u00b7 ' + e.venue, route: '#/events', lead: e.emoji };
+    });
+  });
+
 })(window.RW);

@@ -179,6 +179,23 @@ const pHtml = elements.app.innerHTML;
 if (!pHtml || pHtml.length < 500) fail('property detail did not render after propertyView');
 else ok('property detail reachable (' + pHtml.length + ' chars)');
 
+// global search: providers from every section answer one query bus
+const sGroom = RW.searchAll('groom');
+if (!sGroom.some((r) => r.group === 'Businesses & services')) fail('search: no business hit for "groom"');
+else ok('search finds businesses (' + sGroom.length + ' for "groom")');
+if (!RW.searchAll('national day').length) fail('search: no event hit for "national day"');
+else ok('search finds events');
+if (!RW.searchAll('plumb').length) fail('search: no hit for "plumb"');
+else ok('search finds trades');
+if (!RW.searchAll('cave').length) fail('search: no explore hit for "cave"');
+else ok('search finds attractions');
+if (RW.searchAll('x').length !== 0) fail('search: 1-char query should return nothing');
+else ok('search ignores 1-char queries');
+location.hash = '#/search';
+RW.render();
+if ((elements.app.innerHTML || '').indexOf('global-search') === -1) fail('search screen missing input');
+else ok('search screen renders');
+
 // the user's published business must appear in Discover
 RW.S.myBusiness = { id: 'mybiz', name: 'Test Grooming Co', category: 'Pets', emoji: '🐾', area: 'Town', rating: 'New', reviews: 0, services: [{ id: 'ms1', name: 'Trim', price: 10, durationMin: 30 }], t: Date.now() };
 location.hash = '#/discover';

@@ -17,6 +17,7 @@
     'src/features/_shared.js',
     // core surfaces
     'src/features/home.js',
+    'src/features/search.js',
     'src/features/activity.js',
     'src/features/account.js',
     // marketplace spine: discover & book local businesses + the business side

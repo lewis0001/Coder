@@ -971,4 +971,29 @@
     return [];
   });
 
+
+  // ---- global search: businesses + services ----
+  RW.registerSearch(function (q) {
+    var out = [];
+    allBusinesses().forEach(function (b) {
+      var hitSvc = null;
+      (b.services || []).forEach(function (s) {
+        if (!hitSvc && String(s.name).toLowerCase().indexOf(q) !== -1) hitSvc = s;
+      });
+      var hitBiz = String(b.name).toLowerCase().indexOf(q) !== -1 ||
+        String(b.category).toLowerCase().indexOf(q) !== -1 ||
+        String(b.area).toLowerCase().indexOf(q) !== -1;
+      if (hitBiz || hitSvc) {
+        out.push({
+          group: 'Businesses & services',
+          label: b.name,
+          sub: hitSvc ? hitSvc.name + ' · £' + hitSvc.price : b.category + ' · ' + b.area,
+          route: '#/discover/' + b.id,
+          lead: b.emoji || '🔎',
+        });
+      }
+    });
+    return out;
+  });
+
 })(window.RW);

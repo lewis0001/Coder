@@ -197,4 +197,14 @@
       },
     },
   });
+
+  // ---- global search: your bookings ----
+  RW.registerSearch(function (q) {
+    return (RW.S.bookings || []).filter(function (b) {
+      return (String(b.bizName) + ' ' + String(b.service)).toLowerCase().indexOf(q) !== -1;
+    }).map(function (b) {
+      return { group: 'Your bookings', label: b.service + ' \u00b7 ' + b.bizName, sub: b.when + ' \u00b7 ' + (b.status || 'Requested'), route: '#/activity', lead: '\ud83d\udcc5' };
+    });
+  });
+
 })(window.RW);

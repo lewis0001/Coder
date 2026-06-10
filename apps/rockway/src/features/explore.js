@@ -355,4 +355,16 @@
 
     },
   });
+
+  // ---- global search: attractions & experiences ----
+  RW.registerSearch(function (q) {
+    return ATTRACTIONS.filter(function (a) {
+      return String(a.name).toLowerCase().indexOf(q) !== -1 ||
+        String(a.area || '').toLowerCase().indexOf(q) !== -1 ||
+        String(a.category || '').toLowerCase().indexOf(q) !== -1;
+    }).map(function (a) {
+      return { group: 'Explore', label: a.name, sub: (a.area || 'Gibraltar') + (a.free ? ' \u00b7 Free' : a.fromPrice ? ' \u00b7 from \u00a3' + a.fromPrice : ''), route: '#/explore', lead: a.emoji };
+    });
+  });
+
 })(window.RW);

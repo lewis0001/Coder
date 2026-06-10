@@ -513,4 +513,21 @@
       },
     },
   });
+
+  // ---- global search: vacancies ----
+  RW.registerSearch(function (q) {
+    var out = [];
+    (RW.S.jobPosts || []).forEach(function (j) {
+      if (String(j.title).toLowerCase().indexOf(q) !== -1 || String(j.company || '').toLowerCase().indexOf(q) !== -1 || String(j.sector || '').toLowerCase().indexOf(q) !== -1) {
+        out.push({ group: 'Jobs', label: j.title, sub: (j.company || 'Community post') + ' \u00b7 ' + (j.area || ''), route: '#/jobs', lead: '\ud83d\udcbc' });
+      }
+    });
+    EXAMPLES.forEach(function (j) {
+      if (String(j.title).toLowerCase().indexOf(q) !== -1 || String(j.employer || '').toLowerCase().indexOf(q) !== -1 || String(j.sector || '').toLowerCase().indexOf(q) !== -1) {
+        out.push({ group: 'Jobs', label: j.title, sub: j.employer + ' \u00b7 Example', route: '#/jobs/' + j.id, lead: '\ud83d\udcbc' });
+      }
+    });
+    return out;
+  });
+
 })(window.RW);

@@ -59,4 +59,20 @@
     { id: 'services', label: 'Services' },
     { id: 'explore', label: 'Explore & connect' },
   ];
+
+  /* ---------------- global search ----------------
+   * Features register a provider: fn(q) -> [{ group, label, sub, route, lead }]
+   * where q is the lower-cased query. Providers must be cheap and never throw
+   * (searchAll guards anyway). The #/search surface renders grouped results. */
+  const searchProviders = [];
+  RW.registerSearch = (fn) => searchProviders.push(fn);
+  RW.searchAll = (q) => {
+    q = String(q || '').trim().toLowerCase();
+    if (q.length < 2) return [];
+    let out = [];
+    searchProviders.forEach((fn) => {
+      try { out = out.concat(fn(q) || []); } catch (e) {}
+    });
+    return out.slice(0, 60);
+  };
 })(window.RW);

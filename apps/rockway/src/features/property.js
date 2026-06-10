@@ -721,4 +721,20 @@
     });
     return legacy.concat(mine);
   });
+
+  // ---- global search: property ----
+  RW.registerSearch(function (q) {
+    var out = [];
+    (RW.S.listings || []).forEach(function (l) {
+      if (l.type !== 'property') return;
+      var hay = (String(l.area || '') + ' ' + String(l.desc || '') + ' ' + String(l.beds || '') + ' bed').toLowerCase();
+      if (hay.indexOf(q) !== -1) out.push({ group: 'Property', label: (l.beds || '?') + '-bed \u00b7 ' + (l.area || 'Gibraltar'), sub: 'Community listing \u00b7 \u00a3' + (l.price || '?'), route: '#/property', lead: '\ud83c\udfe0' });
+    });
+    LISTINGS.forEach(function (l) {
+      var hay = (String(l.title) + ' ' + String(l.area) + ' ' + String(l.blurb || '') + ' ' + l.beds + ' bed').toLowerCase();
+      if (hay.indexOf(q) !== -1) out.push({ group: 'Property', label: l.title, sub: l.area + ' \u00b7 \u00a3' + l.price + (l.type === 'rent' ? '/mo' : '') + ' \u00b7 Example', route: '#/property/' + l.id, lead: '\ud83c\udfe0' });
+    });
+    return out;
+  });
+
 })(window.RW);

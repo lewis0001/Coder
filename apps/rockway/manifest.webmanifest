@@ -1,0 +1,24 @@
+{
+  "name": "Rockway — Gibraltar's local marketplace",
+  "short_name": "Rockway",
+  "description": "Discover and book local Gibraltar businesses; live frontier, weather, runway and news for the Rock.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3efe6",
+  "theme_color": "#d4112a",
+  "lang": "en-GB",
+  "categories": ["lifestyle", "travel", "business"],
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Book local services", "url": "/#/discover", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Frontier", "url": "/#/frontier", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Today on the Rock", "url": "/#/today", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
