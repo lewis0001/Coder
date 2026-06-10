@@ -452,6 +452,50 @@
     return slots;
   }
 
+  // ─── WAITLIST HELPERS ────────────────────────────────────────────────────────
+  // RW.S.waitlist[i] = { id, t, bizId, bizName, svcId, service, dateIso }
+
+  function waitlist() {
+    RW.S.waitlist = RW.S.waitlist || [];
+    return RW.S.waitlist;
+  }
+
+  function findWaitlist(bizId, svcId, dateIso) {
+    return waitlist().filter(function (w) {
+      return w.bizId === bizId && w.svcId === svcId && w.dateIso === dateIso;
+    })[0] || null;
+  }
+
+  // Human label for an ISO date ('Today' / 'Tomorrow' / 'Mon 2 Jun')
+  function dayIsoLabel(iso) {
+    var near = nextDays(2);
+    if (iso === near[0].iso) return 'Today';
+    if (iso === near[1].iso) return 'Tomorrow';
+    var p = String(iso).split('-');
+    var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  // Local freed-slot check: does the service's slot grid for entry.dateIso have
+  // at least one slot not in takenSlots()? Mirrors buildBookingPanel exactly
+  // (same step logic + today's 20-min lead-time filter); past days never match.
+  function waitlistHasFreeSlot(entry, svc) {
+    if (!entry || !svc) return false;
+    var today = nextDays(1)[0].iso;
+    if (entry.dateIso < today) return false;
+    var step = svc.durationMin >= 60 ? 60 : 30;
+    var slots = timeSlots(9, 17, step);
+    if (entry.dateIso === today) {
+      var nowMins = new Date().getHours() * 60 + new Date().getMinutes() + 20;
+      slots = slots.filter(function (sl) {
+        var hm = sl.split(':');
+        return parseInt(hm[0], 10) * 60 + parseInt(hm[1], 10) >= nowMins;
+      });
+    }
+    var taken = takenSlots(entry.bizId, entry.dateIso);
+    return slots.some(function (sl) { return !taken[sl]; });
+  }
+
   // Seed reviews per business (deterministic from biz.id)
   var REVIEW_POOL = [
     { author: 'Maria C.', text: 'Absolutely brilliant service, will definitely come back!', rating: 5 },
@@ -627,8 +671,22 @@
         bookingPanel = buildBookingPanel(bizId, svc, bookKey, accent);
       }
 
+      // Freed-slot strips: for each of the user's waitlist entries on this
+      // service, flag days where a previously-full grid now has an opening.
+      var freedStrips = '';
+      waitlist().forEach(function (w) {
+        if (w.bizId !== bizId || w.svcId !== svc.id) return;
+        if (!waitlistHasFreeSlot(w, svc)) return; // still full — no strip
+        freedStrips +=
+          '<div style="display:flex;align-items:center;gap:8px;box-shadow:inset 0 0 0 1.5px var(--gold-soft);border-radius:12px;padding:8px 10px;margin-bottom:10px">' +
+            '<span style="flex:1;font-size:12.5px;font-weight:600">✨ A slot freed up on <span class="num">' + esc(dayIsoLabel(w.dateIso)) + '</span> — pick a time below</span>' +
+            '<span data-act="discWaitlistDel" data-wid="' + esc(w.id) + '" title="Remove from waitlist" style="cursor:pointer;color:var(--ash);font-weight:700;padding:0 4px">×</span>' +
+          '</div>';
+      });
+
       servicesHtml +=
         '<div class="card" style="margin-bottom:10px">' +
+          freedStrips +
           '<div style="display:flex;align-items:center;gap:8px">' +
             '<div style="flex:1">' +
               '<div style="font-weight:700;font-size:14px">' + esc(svc.name) + '</div>' +
@@ -750,6 +808,27 @@
     });
     slotChipsHtml += '</div></div>';
 
+    // Waitlist: when the chosen day is fully booked, offer to join (or show
+    // the quiet on-the-list status if the user already joined for this day).
+    var waitlistHtml = '';
+    if (!available.length) {
+      var wlEntry = findWaitlist(bizId, svc.id, curDay);
+      if (wlEntry) {
+        waitlistHtml =
+          '<div style="margin-top:10px;display:flex;align-items:center;gap:8px">' +
+            '<span class="pill-status info">On the waitlist for this day</span>' +
+            '<span data-act="discWaitlistDel" data-wid="' + esc(wlEntry.id) + '" title="Remove from waitlist" style="cursor:pointer;color:var(--ash);font-weight:700;padding:0 4px">×</span>' +
+          '</div>';
+      } else {
+        waitlistHtml =
+          '<div style="margin-top:10px">' +
+            '<button class="btn sm ghost" data-act="discWaitlist" data-id="' + esc(bizId) + '" data-svc="' + esc(svc.id) + '" data-dayiso="' + esc(curDay) + '">' +
+              'Join the waitlist for this day' +
+            '</button>' +
+          '</div>';
+      }
+    }
+
     // Find the day label for selected day
     var dayObj = null;
     nextDays(5).forEach(function (d) { if (d.iso === curDay) dayObj = d; });
@@ -774,6 +853,7 @@
       '<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:4px">' +
         dayChipsHtml +
         slotChipsHtml +
+        waitlistHtml +
         confirmHtml +
       '</div>'
     );
@@ -919,6 +999,10 @@
             when: booking.when, whenIso: dayIso || '', slot: slot, status: 'Requested',
           });
         }
+        // a successful booking fulfils any waitlist entry for this biz+svc+day
+        RW.S.waitlist = waitlist().filter(function (w) {
+          return !(w.bizId === bizId && w.svcId === svcId && w.dateIso === dayIso);
+        });
         RW.store.save();
 
         // clear booking panel state
@@ -929,6 +1013,41 @@
 
         RW.toast('Booking requested — ' + biz.name + ' will confirm shortly.');
         RW.go('#/activity');
+      },
+
+      discWaitlist: function (el) {
+        var bizId = el.dataset.id;
+        var svcId = el.dataset.svc;
+        var dateIso = el.dataset.dayiso;
+        if (!bizId || !svcId || !dateIso) return;
+        var biz = getBiz(bizId);
+        if (!biz) return;
+        var svc = null;
+        (biz.services || []).forEach(function (s) { if (s.id === svcId) svc = s; });
+        if (!svc) return;
+        if (!findWaitlist(bizId, svcId, dateIso)) {
+          waitlist().push({
+            id:      uid(),
+            t:       Date.now(),
+            bizId:   bizId,
+            bizName: biz.name,
+            svcId:   svc.id,
+            service: svc.name,
+            dateIso: dateIso,
+          });
+          RW.store.save();
+        }
+        RW.toast('On the list — we’ll flag it if a slot frees up.');
+        RW.render();
+      },
+
+      discWaitlistDel: function (el) {
+        var wid = el.dataset.wid;
+        if (!wid) return;
+        RW.S.waitlist = waitlist().filter(function (w) { return w.id !== wid; });
+        RW.store.save();
+        RW.toast('Removed from the waitlist.');
+        RW.render();
       },
 
       discRate: function (el) {
@@ -978,8 +1097,20 @@
   // ─── ACTIVITY FEED ───────────────────────────────────────────────────────────
   RW.registerActivity(function () {
     // bookings are already surfaced by activity.js built-in provider via RW.S.bookings
-    // so we return [] to avoid duplicates
-    return [];
+    // so we only surface booking-waitlist entries here
+    return waitlist().map(function (w) {
+      return {
+        t: w.t,
+        kind: 'bookings',
+        html:
+          '<div class="card row" data-act="nav" data-route="' + esc('#/discover/' + w.bizId) + '" style="cursor:pointer">' +
+            '<div class="lead">⏳</div>' +
+            '<div class="body"><div class="name">Waitlist · ' + esc(w.service) + '</div>' +
+            '<div class="sub">' + esc(w.bizName) + ' · <span class="num">' + esc(dayIsoLabel(w.dateIso)) + '</span></div></div>' +
+            '<div class="trail"><span class="pill-status info">Waiting</span></div>' +
+          '</div>',
+      };
+    });
   });
 
 
