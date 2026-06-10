@@ -46,6 +46,100 @@
 
 
   // ---- status pill ----
+  // selected day in the week schedule strip (session only)
+  var openDay = null;
+
+  // Human "when" for a received booking: prefer the booking's own label, else
+  // build one from whenIso + slot (never run fmtWhen on a label string → NaN).
+  function bookingWhen(b) {
+    if (b.when && b.when !== 'x') return b.when;
+    if (b.whenIso) {
+      var nice = new Date(b.whenIso + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+      return nice + (b.slot ? ' · ' + b.slot : '');
+    }
+    return b.slot || 'Requested';
+  }
+
+  // Update a received booking's status AND mirror it onto the customer's own
+  // booking (same id) so their Bookings tab stays in sync for self-bookings.
+  function setBookingStatus(id, status, msg) {
+    if (!id) return;
+    RW.S.bizBookings = RW.S.bizBookings || [];
+    var b = RW.S.bizBookings.filter(function (x) { return x.id === id; })[0];
+    if (!b) return;
+    b.status = status;
+    (RW.S.bookings || []).forEach(function (cb) { if (cb.id === id) cb.status = status; });
+    RW.store.save();
+    RW.toast(msg);
+    RW.render();
+  }
+
+  // Next 7 Gibraltar days as { iso, label, dow }.
+  function weekDays() {
+    var out = [];
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(Date.now() + i * 86400000);
+      var iso = d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Gibraltar' });
+      out.push({
+        iso: iso,
+        label: i === 0 ? 'Today' : i === 1 ? 'Tom' : d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'Europe/Gibraltar' }),
+        dom: d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'Europe/Gibraltar' }),
+      });
+    }
+    return out;
+  }
+
+  // The schedule strip + selected-day detail (bookings that day + block-outs).
+  function scheduleSection() {
+    var biz = RW.S.myBusiness;
+    biz.blocked = biz.blocked || [];
+    var days = weekDays();
+    if (!openDay) openDay = days[0].iso;
+    var active = function (s) { return s !== 'Cancelled' && s !== 'Declined'; };
+
+    var strip = '<div class="card" style="margin-bottom:12px"><div class="week-strip">';
+    days.forEach(function (d) {
+      var n = (RW.S.bizBookings || []).filter(function (b) { return b.whenIso === d.iso && active(b.status); }).length;
+      var blk = biz.blocked.filter(function (k) { return String(k).split(' ')[0] === d.iso; }).length;
+      var on = d.iso === openDay ? ' on' : '';
+      strip += '<button class="day-pill' + on + '" data-act="bizDay" data-day="' + d.iso + '">' +
+        '<span class="dl">' + esc(d.label) + '</span><span class="dn num">' + esc(d.dom) + '</span>' +
+        (n ? '<span class="db">' + n + '</span>' : (blk ? '<span class="db blk">•</span>' : '<span class="db gap"></span>')) +
+        '</button>';
+    });
+    strip += '</div>';
+
+    // selected day detail
+    var dayBookings = (RW.S.bizBookings || []).filter(function (b) { return b.whenIso === openDay; });
+    var dayBlocks = biz.blocked.filter(function (k) { return String(k).split(' ')[0] === openDay; }).sort();
+    var detail = '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">';
+    if (dayBookings.length) {
+      dayBookings.forEach(function (b) {
+        detail += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0">' +
+          '<span class="num" style="font-weight:800;font-size:13px;min-width:42px">' + esc(b.slot || '—') + '</span>' +
+          '<span style="flex:1;font-size:13px">' + esc(b.customer || 'Customer') + ' · ' + esc(b.service) + '</span>' +
+          statusPill(b.status) + '</div>';
+      });
+    } else {
+      detail += '<div class="subtle" style="margin-bottom:4px">No bookings on this day yet.</div>';
+    }
+    // block-out manager
+    var slotOpts = '';
+    for (var hh = 9; hh <= 17; hh++) { var t = (hh < 10 ? '0' : '') + hh + ':00'; slotOpts += '<option value="' + t + '">' + t + '</option>'; }
+    detail += '<div style="display:flex;gap:8px;margin-top:10px">' +
+      '<select id="block-slot" class="input" style="flex:1">' + slotOpts + '</select>' +
+      '<button class="btn sm" data-act="bizBlock">Block</button></div>';
+    if (dayBlocks.length) {
+      detail += '<div class="chips" style="margin-top:10px">' + dayBlocks.map(function (k) {
+        var slot = String(k).split(' ')[1] || '';
+        return '<span class="chip">⛔ ' + esc(slot) + ' <span data-act="bizUnblock" data-key="' + esc(k) + '" style="cursor:pointer;font-weight:800">×</span></span>';
+      }).join('') + '</div>';
+    }
+    detail += '<div class="subtle" style="margin-top:8px">Blocked slots disappear from your booking page instantly.</div>';
+    detail += '</div>';
+    return strip + detail + '</div>';
+  }
+
   function statusPill(status) {
     var cls = 'neutral';
     if (status === 'Confirmed') cls = 'ok';
@@ -194,7 +288,7 @@
           statusPill(b.status) +
           '</div>' +
           '<div style="font-size:13px;color:var(--ash);margin-top:3px">' + esc(b.service) + ' · ' + esc(b.ref) + '</div>' +
-          '<div style="font-size:12px;color:var(--ash);margin-top:2px">📅 ' + esc(fmtWhen(b.when)) + '</div>' +
+          '<div style="font-size:12px;color:var(--ash);margin-top:2px">📅 ' + esc(bookingWhen(b)) + '</div>' +
           actBtns +
           '</div>';
       }).join('');
@@ -273,6 +367,8 @@
     var body =
       headerCard +
       statsGrid +
+      RW.ui.sectionTitle('This week') +
+      scheduleSection() +
       RW.ui.sectionTitle('Incoming bookings') +
       bookingsHtml +
       RW.ui.sectionTitle('Your services') +
@@ -383,27 +479,28 @@
       RW.render();
     },
 
-    bizAccept: function (el) {
-      var id = el.dataset.id;
-      if (!id) return;
-      RW.S.bizBookings = RW.S.bizBookings || [];
-      var b = RW.S.bizBookings.filter(function (x) { return x.id === id; })[0];
-      if (!b) return;
-      b.status = 'Confirmed';
-      RW.store.save();
-      RW.toast('Booking confirmed!');
+    bizAccept: function (el) { setBookingStatus(el.dataset.id, 'Confirmed', 'Booking confirmed!'); },
+    bizDecline: function (el) { setBookingStatus(el.dataset.id, 'Declined', 'Booking declined.'); },
+
+    bizDay: function (el) {
+      openDay = el.dataset.day || null;
       RW.render();
     },
-
-    bizDecline: function (el) {
-      var id = el.dataset.id;
-      if (!id) return;
-      RW.S.bizBookings = RW.S.bizBookings || [];
-      var b = RW.S.bizBookings.filter(function (x) { return x.id === id; })[0];
-      if (!b) return;
-      b.status = 'Declined';
+    bizBlock: function (el) {
+      var sel = document.getElementById('block-slot');
+      var slot = sel ? sel.value : '';
+      if (!openDay || !slot) { RW.toast('Pick a time to block.'); return; }
+      RW.S.myBusiness.blocked = RW.S.myBusiness.blocked || [];
+      var key = openDay + ' ' + slot;
+      if (RW.S.myBusiness.blocked.indexOf(key) === -1) RW.S.myBusiness.blocked.push(key);
       RW.store.save();
-      RW.toast('Booking declined.');
+      RW.toast('Blocked ' + slot + ' — gone from your booking page.');
+      RW.render();
+    },
+    bizUnblock: function (el) {
+      var key = el.dataset.key;
+      RW.S.myBusiness.blocked = (RW.S.myBusiness.blocked || []).filter(function (k) { return k !== key; });
+      RW.store.save();
       RW.render();
     },
 

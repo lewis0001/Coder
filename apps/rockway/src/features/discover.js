@@ -320,6 +320,41 @@
   // Booking flow state: keyed "bizId::serviceId"
   var selectedDay  = {};
   var selectedSlot = {};
+  var reviewDraft  = {};   // bizId -> { rating, text } in-progress review
+
+  // Slots already unavailable for a business on a given ISO date: the user's
+  // own live bookings for that biz/date, plus (for the user's own business)
+  // received bookings and owner block-outs. Returns a lookup object.
+  function takenSlots(bizId, dateIso) {
+    var taken = {};
+    var active = function (s) { return s !== 'Cancelled' && s !== 'Declined'; };
+    (RW.S.bookings || []).forEach(function (b) {
+      if (b.bizId === bizId && b.whenIso === dateIso && b.slot && active(b.status)) taken[b.slot] = true;
+    });
+    if (RW.S.myBusiness && bizId === RW.S.myBusiness.id) {
+      (RW.S.bizBookings || []).forEach(function (b) {
+        if (b.whenIso === dateIso && b.slot && active(b.status)) taken[b.slot] = true;
+      });
+      (RW.S.myBusiness.blocked || []).forEach(function (key) {
+        var parts = String(key).split(' ');
+        if (parts[0] === dateIso && parts[1]) taken[parts[1]] = true;
+      });
+    }
+    return taken;
+  }
+
+  // Has the user a Confirmed or past booking for this biz, and not yet reviewed?
+  function userReview(bizId) {
+    return (RW.S.reviews || []).filter(function (r) { return r.bizId === bizId; })[0] || null;
+  }
+  function canReview(bizId) {
+    if (userReview(bizId)) return false;
+    var today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Gibraltar' });
+    return (RW.S.bookings || []).some(function (b) {
+      return b.bizId === bizId && b.status !== 'Cancelled' && b.status !== 'Declined' &&
+        (b.status === 'Confirmed' || (b.whenIso && b.whenIso < today));
+    });
+  }
 
   // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -612,13 +647,42 @@
 
     // Reviews
     var reviewsHtml = RW.ui.sectionTitle('Reviews');
-    var reviews = seedReviews(biz);
-    reviews.forEach(function (rv) {
+
+    // your own review (write-back) renders first
+    var mine = userReview(bizId);
+    if (mine) {
+      reviewsHtml +=
+        '<div class="card" style="margin-bottom:8px;box-shadow:inset 0 0 0 1.5px var(--gold-soft)">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
+            '<span style="font-weight:700;font-size:13px">Your review</span>' +
+            '<span style="color:var(--gold);font-size:13px">' + '★'.repeat(mine.rating) + '<span style="color:var(--mist)">' + '★'.repeat(5 - mine.rating) + '</span></span>' +
+            '<span style="margin-left:auto;font-size:11px;color:var(--ash)">' + esc(fmtTime(mine.t)) + '</span>' +
+          '</div>' +
+          (mine.text ? '<div style="font-size:13px;color:var(--ink60);line-height:1.5">' + esc(mine.text) + '</div>' : '') +
+          '<button class="btn sm ghost" style="margin-top:8px" data-act="discReviewDel" data-rid="' + esc(mine.id) + '">Remove</button>' +
+        '</div>';
+    } else if (canReview(bizId)) {
+      // "Rate your visit" composer (eligible after a confirmed/past booking)
+      var draft = reviewDraft[bizId] || { rating: 0, text: '' };
+      var stars = '';
+      for (var si = 1; si <= 5; si++) {
+        stars += '<span class="rate-star' + (si <= draft.rating ? ' on' : '') + '" data-act="discRate" data-id="' + esc(bizId) + '" data-r="' + si + '">★</span>';
+      }
+      reviewsHtml +=
+        '<div class="card" style="margin-bottom:8px">' +
+          '<div style="font-weight:700;font-size:14px;margin-bottom:8px">Rate your visit</div>' +
+          '<div class="rate-stars">' + stars + '</div>' +
+          '<textarea id="rv-text-' + esc(bizId) + '" class="input" rows="2" placeholder="How was it? (optional)" style="margin-top:10px;resize:none">' + esc(draft.text || '') + '</textarea>' +
+          '<button class="btn sm" style="margin-top:10px" data-act="discReview" data-id="' + esc(bizId) + '">Submit review</button>' +
+        '</div>';
+    }
+
+    seedReviews(biz).forEach(function (rv) {
       reviewsHtml +=
         '<div class="card" style="margin-bottom:8px">' +
           '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
             '<span style="font-weight:700;font-size:13px">' + esc(rv.author) + '</span>' +
-            '<span style="color:#f5a623;font-size:12px">' + '★'.repeat(rv.rating) + '</span>' +
+            '<span style="color:var(--gold);font-size:12px">' + '★'.repeat(rv.rating) + '</span>' +
           '</div>' +
           '<div style="font-size:13px;color:var(--ink60);line-height:1.5">' + esc(rv.text) + '</div>' +
         '</div>';
@@ -661,13 +725,22 @@
       });
     }
 
+    // remove already-booked / blocked slots for the chosen day
+    var taken = takenSlots(bizId, curDay);
+    var available = slots.filter(function (sl) { return !taken[sl]; });
+    if (curSlot && taken[curSlot]) curSlot = null; // a held slot was just taken
+
     var slotChipsHtml = '<div style="margin-top:10px">' +
       '<div style="font-size:12px;font-weight:700;color:var(--ash);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Choose Time</div>' +
       '<div class="chips">';
-    if (!slots.length) {
-      slotChipsHtml += '<span class="subtle" style="padding:4px 0">No more slots today — pick another day.</span>';
+    if (!available.length) {
+      slotChipsHtml += '<span class="subtle" style="padding:4px 0">No free slots that day — try another.</span>';
     }
     slots.forEach(function (sl) {
+      if (taken[sl]) {
+        slotChipsHtml += '<span class="chip" title="Booked" style="opacity:.4;text-decoration:line-through">' + esc(sl) + '</span>';
+        return;
+      }
       var on = sl === curSlot ? ' on brand' : '';
       slotChipsHtml +=
         '<span class="chip tap' + on + '" data-act="discPickSlot" ' +
@@ -687,7 +760,7 @@
       '<div style="margin-top:14px">' +
         '<button class="btn sea" style="width:100%"' + confirmDisabled +
           ' data-act="discConfirm" data-id="' + esc(bizId) + '" data-svc="' + esc(svc.id) + '"' +
-          ' data-day="' + esc(dayLabelStr) + '" data-slot="' + esc(curSlot || '') + '">' +
+          ' data-day="' + esc(dayLabelStr) + '" data-dayiso="' + esc(curDay) + '" data-slot="' + esc(curSlot || '') + '">' +
           'Confirm booking' +
           (curSlot ? ' · ' + esc(dayLabelStr) + ' ' + esc(curSlot) : '') +
         '</button>' +
@@ -792,6 +865,7 @@
         var bizId   = el.dataset.id;
         var svcId   = el.dataset.svc;
         var dayLabel = el.dataset.day;
+        var dayIso  = el.dataset.dayiso;
         var slot    = el.dataset.slot;
         if (!bizId || !svcId || !dayLabel || !slot) return;
 
@@ -801,8 +875,15 @@
         biz.services.forEach(function (s) { if (s.id === svcId) svc = s; });
         if (!svc) return;
 
-        RW.S.bookings = RW.S.bookings || [];
-        RW.S.bookings.push({
+        // re-validate: the slot may have been taken since the panel rendered
+        if (dayIso && takenSlots(bizId, dayIso)[slot]) {
+          RW.toast('That slot was just taken — pick another.');
+          selectedSlot[bizId + '::' + svcId] = null;
+          RW.render();
+          return;
+        }
+
+        var booking = {
           id:      uid(),
           ref:     ref('BK'),
           t:       Date.now(),
@@ -810,9 +891,23 @@
           bizName: biz.name,
           service: svc.name,
           price:   svc.price > 0 ? '£' + svc.price.toFixed(2) : 'Free',
-          when:    esc(dayLabel) + ' · ' + esc(slot),
+          when:    dayLabel + ' · ' + slot,
+          whenIso: dayIso || '',
+          slot:    slot,
           status:  'Requested',
-        });
+        };
+        RW.S.bookings = RW.S.bookings || [];
+        RW.S.bookings.push(booking);
+        // if booking the user's OWN business, mirror into the owner inbox
+        // (same id) so it shows in the For Business dashboard.
+        if (RW.S.myBusiness && bizId === RW.S.myBusiness.id) {
+          RW.S.bizBookings = RW.S.bizBookings || [];
+          RW.S.bizBookings.push({
+            id: booking.id, ref: booking.ref, t: booking.t,
+            customer: RW.S.name || 'A customer', service: svc.name,
+            when: booking.when, whenIso: dayIso || '', slot: slot, status: 'Requested',
+          });
+        }
         RW.store.save();
 
         // clear booking panel state
@@ -823,6 +918,41 @@
 
         RW.toast('Booking requested — ' + biz.name + ' will confirm shortly.');
         RW.go('#/activity');
+      },
+
+      discRate: function (el) {
+        var bizId = el.dataset.id;
+        if (!bizId) return;
+        reviewDraft[bizId] = reviewDraft[bizId] || { rating: 0, text: '' };
+        reviewDraft[bizId].rating = parseInt(el.dataset.r, 10) || 0;
+        // preserve any typed text before re-render
+        var ta = document.getElementById('rv-text-' + bizId);
+        if (ta) reviewDraft[bizId].text = ta.value;
+        RW.render();
+      },
+
+      discReview: function (el) {
+        var bizId = el.dataset.id;
+        if (!bizId) return;
+        var draft = reviewDraft[bizId] || { rating: 0, text: '' };
+        var ta = document.getElementById('rv-text-' + bizId);
+        var text = ta ? ta.value.trim().slice(0, 240) : (draft.text || '');
+        if (!draft.rating) { RW.toast('Tap the stars to rate first.'); return; }
+        RW.S.reviews = RW.S.reviews || [];
+        RW.S.reviews.push({ id: uid(), t: Date.now(), bizId: bizId, rating: draft.rating, text: text });
+        delete reviewDraft[bizId];
+        RW.store.save();
+        RW.toast('Thanks for reviewing — ¡gracias!');
+        RW.render();
+      },
+
+      discReviewDel: function (el) {
+        var rid = el.dataset.rid;
+        if (!rid) return;
+        RW.S.reviews = (RW.S.reviews || []).filter(function (r) { return r.id !== rid; });
+        RW.store.save();
+        RW.toast('Review removed.');
+        RW.render();
       },
 
       discMessage: function (el) {

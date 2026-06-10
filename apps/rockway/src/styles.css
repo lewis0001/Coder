@@ -28,6 +28,8 @@
   --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --line: rgba(20, 24, 31, 0.07);
+  --border: rgba(20, 24, 31, 0.07);
+  --ink60: #6b7280;
   font-synthesis: none;
 }
 
@@ -373,3 +375,20 @@ label.fld { display: block; font-size: 12.5px; font-weight: 700; color: var(--sl
 .banner .t { font-weight: 700; font-size: 14px; }
 .banner .s { font-size: 12px; opacity: .75; margin-top: 2px; }
 .banner .go { margin-left: auto; opacity: .7; }
+
+/* review star rating (Discover) */
+.rate-stars { display: flex; gap: 6px; }
+.rate-star { font-size: 30px; line-height: 1; color: var(--mist); cursor: pointer; transition: transform .08s ease, color .12s; user-select: none; }
+.rate-star.on { color: var(--gold); }
+.rate-star:active { transform: scale(1.2); }
+textarea.input { font-family: inherit; width: 100%; }
+
+/* business week-schedule strip */
+.week-strip { display: flex; gap: 6px; }
+.day-pill { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; border: 1px solid var(--line); background: var(--white); border-radius: 12px; padding: 8px 2px 6px; cursor: pointer; font-family: inherit; }
+.day-pill.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.day-pill .dl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+.day-pill .dn { font-size: 16px; font-weight: 800; line-height: 1.1; }
+.day-pill .db { font-size: 10px; font-weight: 800; min-height: 14px; color: var(--brand); }
+.day-pill.on .db { color: var(--gold); }
+.day-pill .db.blk { color: var(--ash); } .day-pill .db.gap { color: transparent; }

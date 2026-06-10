@@ -11,21 +11,48 @@
   const providers = [];
   RW.registerActivity = (fn) => providers.push(fn);
 
+  /* ---- which booking row is expanded (session only) ---- */
+  var expandedId = null;
+
   /* ---- built-in providers (bookings + event/explore reservations) ---- */
   function statusPill(s) {
-    var cls = s === 'Confirmed' ? 'ok' : s === 'Cancelled' ? 'danger' : 'info';
+    var cls = s === 'Confirmed' ? 'ok' : s === 'Declined' ? 'danger' : s === 'Cancelled' ? 'neutral' : 'info';
     return '<span class="pill-status ' + cls + '">' + esc(s || 'Requested') + '</span>';
   }
-  RW.registerActivity(() => (RW.S.bookings || []).map((b) => ({
-    t: b.t,
-    kind: 'bookings',
-    html: '<div class="card row" data-act="nav" data-route="#/discover/' + esc(b.bizId || '') + '" style="cursor:pointer">' +
+  function statusLine(s) {
+    if (s === 'Confirmed') return 'Confirmed by the business — see you there.';
+    if (s === 'Declined') return 'The business couldn’t take this one. Try another time or place.';
+    if (s === 'Cancelled') return 'You cancelled this booking.';
+    return 'Waiting for the business to confirm.';
+  }
+  RW.registerActivity(() => (RW.S.bookings || []).map((b) => {
+    var dim = (b.status === 'Cancelled' || b.status === 'Declined');
+    var open = expandedId === b.id;
+    var head =
+      '<div class="row" data-act="activityOpen" data-id="' + esc(b.id) + '" style="cursor:pointer;border-bottom:0">' +
       '<div class="lead" style="background:var(--green-soft)">📅</div>' +
       '<div class="body"><div class="name">' + esc(b.service) + ' · ' + esc(b.bizName) + '</div>' +
       '<div class="sub">' + esc(b.when) + ' · ' + esc(b.ref) +
       (b.price ? ' · <span class="num">' + esc(b.price) + '</span>' : '') + '</div></div>' +
-      '<div class="trail">' + statusPill(b.status) + '</div></div>',
-  })));
+      '<div class="trail">' + statusPill(b.status) + '</div></div>';
+    var panel = '';
+    if (open) {
+      var canChange = (b.status === 'Requested' || b.status === 'Confirmed');
+      panel =
+        '<div style="border-top:1px solid var(--line);margin-top:4px;padding-top:10px">' +
+        '<div style="font-size:13px;color:var(--ash);margin-bottom:10px">' + esc(statusLine(b.status)) + '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn sm ghost" data-act="nav" data-route="#/discover/' + esc(b.bizId || '') + '">View business</button>' +
+        (canChange ? '<button class="btn sm ghost" data-act="activityResched" data-id="' + esc(b.id) + '">Change time</button>' : '') +
+        (canChange ? '<button class="btn sm" data-act="activityCancel" data-id="' + esc(b.id) + '">Cancel booking</button>' : '') +
+        '</div></div>';
+    }
+    return {
+      t: b.t,
+      kind: 'bookings',
+      html: '<div class="card" style="' + (dim ? 'opacity:.6;' : '') + 'cursor:pointer">' + head + panel + '</div>',
+    };
+  }));
 
   RW.registerActivity(() => (RW.S.reservations || []).map((r) => ({
     t: r.t,
@@ -143,6 +170,30 @@
       activityFilter: function (el) {
         currentFilter = el.dataset.v;
         RW.render();
+      },
+      activityOpen: function (el) {
+        var id = el.dataset.id;
+        expandedId = (expandedId === id) ? null : id;
+        RW.render();
+      },
+      activityCancel: function (el) {
+        var id = el.dataset.id;
+        var b = (RW.S.bookings || []).filter(function (x) { return x.id === id; })[0];
+        if (!b) return;
+        if (typeof confirm === 'function' && !confirm('Cancel this booking?')) return;
+        b.status = 'Cancelled';
+        // keep the owner side in sync for self-bookings
+        (RW.S.bizBookings || []).forEach(function (ob) { if (ob.id === id) ob.status = 'Cancelled'; });
+        RW.store.save();
+        RW.toast('Booking cancelled.');
+        RW.render();
+      },
+      activityResched: function (el) {
+        var id = el.dataset.id;
+        var b = (RW.S.bookings || []).filter(function (x) { return x.id === id; })[0];
+        if (!b) return;
+        RW.toast('Pick a new time, then cancel this one.');
+        RW.go('#/discover/' + (b.bizId || ''));
       },
     },
   });

@@ -123,9 +123,10 @@ const pawBiz = RW.api.getBusiness && RW.api.getBusiness('biz-pc');
 if (!pawBiz) fail('RW.api.getBusiness(biz-pc) missing');
 else {
   const svc = pawBiz.services[0];
-  act('discConfirm', { id: 'biz-pc', svc: svc.id, day: 'Tomorrow', slot: '10:00' });
+  act('discConfirm', { id: 'biz-pc', svc: svc.id, day: 'Tomorrow', dayiso: '2026-12-01', slot: '10:00' });
   if (!(RW.S.bookings || []).length) fail('discConfirm did not create a booking');
-  else ok('booking created (' + RW.S.bookings[0].ref + ')');
+  else if (RW.S.bookings[0].whenIso !== '2026-12-01' || RW.S.bookings[0].slot !== '10:00') fail('booking missing whenIso/slot');
+  else ok('booking created with slot data (' + RW.S.bookings[0].ref + ')');
   location.hash = '#/activity';
   RW.render();
   let aHtml = elements.app.innerHTML;
@@ -136,6 +137,39 @@ else {
   if (aHtml.indexOf('Paws') === -1) fail('Bookings filter hides the booking');
   else ok('Bookings filter keeps the booking visible');
   if (/native code/.test(aHtml)) fail('Activity leaks a stringified function');
+
+  // Phase-3: double-booking prevention — same biz/day/slot must be rejected
+  const beforeN = RW.S.bookings.length;
+  act('discConfirm', { id: 'biz-pc', svc: svc.id, day: 'Tomorrow', dayiso: '2026-12-01', slot: '10:00' });
+  if (RW.S.bookings.length !== beforeN) fail('double-booking not prevented');
+  else ok('double-booking prevented (still ' + beforeN + ')');
+
+  // Phase-3: cancel from Activity
+  const bk = RW.S.bookings[0];
+  act('activityOpen', { id: bk.id });
+  act('activityCancel', { id: bk.id });
+  if (bk.status !== 'Cancelled') fail('activityCancel did not cancel'); else ok('booking cancelled');
+
+  // Phase-3: review write-back after a confirmed booking
+  RW.S.bookings.push({ id: 'rvtest', ref: 'BK0000', t: Date.now(), bizId: 'biz-pc', bizName: 'Paws & Claws Grooming', service: 'Bath', price: '£22', when: 'x', whenIso: '2026-12-01', slot: '11:00', status: 'Confirmed' });
+  location.hash = '#/discover/biz-pc'; RW.render();
+  act('discRate', { id: 'biz-pc', r: '5' });
+  act('discReview', { id: 'biz-pc' });
+  if (!(RW.S.reviews || []).some((r) => r.bizId === 'biz-pc' && r.rating === 5)) fail('review write-back failed');
+  else ok('review written (' + RW.S.reviews.length + ')');
+  RW.render();
+  if (elements.app.innerHTML.indexOf('Your review') === -1) fail('own review not shown on detail');
+  else ok('own review shown on detail');
+
+  // Phase-3: business accept syncs the customer booking status
+  RW.S.myBusiness = { id: 'mybiz', name: 'Test Co', category: 'Pets', emoji: '🐾', area: 'Town', rating: 'New', reviews: 0, services: [{ id: 'ms1', name: 'Trim', price: 10, durationMin: 30 }], blocked: [], t: Date.now() };
+  RW.S.bizBookings = [{ id: 'sync1', ref: 'BK9', t: Date.now(), customer: 'Lucia', service: 'Trim', when: 'x', whenIso: '2026-12-02', slot: '09:00', status: 'Requested' }];
+  RW.S.bookings.push({ id: 'sync1', ref: 'BK9', t: Date.now(), bizId: 'mybiz', bizName: 'Test Co', service: 'Trim', price: '£10', when: 'x', whenIso: '2026-12-02', slot: '09:00', status: 'Requested' });
+  act('bizAccept', { id: 'sync1' });
+  const synced = RW.S.bookings.filter((b) => b.id === 'sync1')[0];
+  if (RW.S.bizBookings[0].status !== 'Confirmed' || !synced || synced.status !== 'Confirmed') fail('accept did not sync both sides');
+  else ok('accept synced owner + customer');
+  RW.S.myBusiness = null; RW.S.bizBookings = [];
 }
 
 // property detail must be reachable via its action (RW.navigate bug shipped once)
