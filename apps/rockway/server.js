@@ -289,6 +289,28 @@ register('fixtures', 12 * 60 * 60 * 1000, (done) => {
   });
 });
 
+/* ------------------------------------------------------------- /api/bus -- */
+// Gibraltar Bus Company live tracker. Each route page (busTracker.php?id=N)
+// returns a schematic background + one overlay PNG (c<seg>.png) per live bus.
+// We count the markers → "N buses running now" + the source's last-updated.
+register('bus', 20 * 1000, (done) => {
+  const ROUTES = ['1', '2', '3', '4', '7', '8', '9'];
+  const urls = ROUTES.map((id) => 'https://track.bus.gi/busTracker.php?id=' + id);
+  fetchAll(urls, (err, bodies) => {
+    if (err) { done({ ok: false }); return; }
+    try {
+      const routes = ROUTES.map((id, i) => {
+        const html = bodies[i] || '';
+        const segs = (html.match(/c(\d+)\.png/g) || []).map((m) => parseInt(m.slice(1), 10));
+        const upd = (html.match(/Last Updated:\s*([0-9/: ]+)/i) || [])[1] || '';
+        return { id: id, running: segs.length, segments: segs, updated: upd.trim() };
+      });
+      const anyLive = routes.some((r) => r.running > 0 || r.updated);
+      done(anyLive ? { ok: true, fetched: Date.now(), source: 'track.bus.gi', routes: routes } : { ok: false });
+    } catch (e) { done({ ok: false }); }
+  });
+});
+
 /* ------------------------------------------------------------- HTTP core -- */
 http.createServer((req, res) => {
   const pathname = req.url.split('?')[0];

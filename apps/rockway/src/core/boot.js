@@ -31,6 +31,7 @@
     // automatable local features
     'src/features/frontier.js',   // live cameras + community crowd-reports
     'src/features/carpool.js',    // frontier lift board (honest noticeboard)
+    'src/features/move.js',       // live bus tracker + taxi + cable car
     'src/features/marketplace.js',
     'src/features/jobs.js',
     'src/features/property.js',

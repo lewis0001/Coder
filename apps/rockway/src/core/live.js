@@ -18,6 +18,7 @@
     pharmacy: 12 * 60 * 60 * 1000,
     holidays: 24 * 60 * 60 * 1000,
     fixtures: 12 * 60 * 60 * 1000,
+    bus: 20 * 1000,
   };
 
   const data = {};    // name -> payload (only when ok:true)

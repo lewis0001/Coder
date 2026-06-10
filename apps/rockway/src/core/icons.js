@@ -21,6 +21,12 @@
       '<path d="M14 14l5 5" ' + A + '/>' +
       '<path d="M8 10.4h4.8M10.4 8v4.8" ' + G + '/>'
     ),
+    move: wrap(
+      '<rect x="5" y="4.6" width="14" height="12.4" rx="2.4" ' + S + '/>' +
+      '<path d="M5 11h14" ' + S + '/><path d="M8 4.6v6.4M16 4.6v6.4" ' + S + '/>' +
+      '<path d="M7.6 19.4v1.2M16.4 19.4v1.2" ' + S + '/>' +
+      '<path d="M8 14.4h.01M16 14.4h.01" stroke="var(--brand)" stroke-width="2.4" stroke-linecap="round"/>'
+    ),
     carpool: wrap(
       '<path d="M4.6 14.4l1.4-4.2a2 2 0 0 1 1.9-1.4h8.2a2 2 0 0 1 1.9 1.4l1.4 4.2" ' + S + '/>' +
       '<path d="M4 14.4h16v3.4a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1v-.8H7.6v.8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" ' + S + '/>' +

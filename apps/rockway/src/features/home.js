@@ -55,6 +55,7 @@
   const TILES = [
     { id: 'frontier', label: 'Frontier' },
     { id: 'carpool', label: 'Car-pool' },
+    { id: 'move', label: 'Move' },
     { id: 'weather', label: 'Weather & Sea' },
     { id: 'runway', label: 'Runway' },
     { id: 'today', label: 'Today', route: '#/today' },
