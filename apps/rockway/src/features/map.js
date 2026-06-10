@@ -7,8 +7,8 @@
   'use strict';
   const { esc } = RW.util;
 
-  var LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-  var LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  var LEAFLET_CSS = 'vendor/leaflet/leaflet.css'; // self-hosted (SW-cacheable, no CDN dependency)
+  var LEAFLET_JS = 'vendor/leaflet/leaflet.js';
   var OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   var OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
   var GMAPS_URL = 'https://www.google.com/maps/place/Gibraltar/@36.135,-5.35,14z';

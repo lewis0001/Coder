@@ -7,7 +7,7 @@
  *  - navigations      → cached index.html when offline
  * Bump VERSION on any breaking shell change to invalidate old caches. */
 'use strict';
-const VERSION = 'rw-v1';
+const VERSION = 'rw-v2';
 const SHELL = [
   '/',
   '/index.html',
@@ -22,6 +22,8 @@ const SHELL = [
   '/src/core/router.js',
   '/src/core/boot.js',
   '/manifest.webmanifest',
+  '/vendor/leaflet/leaflet.js',
+  '/vendor/leaflet/leaflet.css',
 ];
 
 self.addEventListener('install', (e) => {

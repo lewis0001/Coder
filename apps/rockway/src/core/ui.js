@@ -53,7 +53,7 @@
       tab = { home: 'home', discover: 'discover', activity: 'activity', account: 'account', business: 'account' }[seg] || 'home';
     }
     return top +
-      '<div class="screen fade-in">' + (opts.hero || '') + '<div class="pad">' + (opts.body || '') + '<div style="height:24px"></div></div></div>' +
+      '<div class="screen' + (RW.navAnim ? ' fade-in' : '') + '">' + (opts.hero || '') + '<div class="pad">' + (opts.body || '') + '<div style="height:24px"></div></div></div>' +
       (opts.sticky || '') + tabbar(tab);
   }
 

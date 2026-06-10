@@ -250,8 +250,22 @@ if ((location.hash || '').indexOf('/book/s-pc-1') === -1) fail('rebook: did not 
 location.hash = '#/discover/biz-pc/book/s-pc-1'; RW.render();
 if ((elements.app.innerHTML || '').indexOf('Choose') === -1) fail('rebook: slot picker did not auto-open'); else ok('rebook auto-opens the slot picker');
 
+// waitlist: join on a full day, surfaces in Activity, cleaned up on booking
+(function () {
+  const svc = RW.api.getBusiness('biz-pc').services[0];
+  act('discWaitlist', { id: 'biz-pc', svc: svc.id, dayiso: '2026-12-02' });
+  if (!(RW.S.waitlist || []).length) fail('waitlist: entry not created');
+  else ok('waitlist entry created');
+  location.hash = '#/activity'; RW.render();
+  if ((elements.app.innerHTML || '').indexOf('Waitlist') === -1) fail('waitlist: not surfaced in Activity');
+  else ok('waitlist surfaces in Activity');
+  act('discConfirm', { id: 'biz-pc', svc: svc.id, day: 'Wed', dayiso: '2026-12-02', slot: '11:00' });
+  if ((RW.S.waitlist || []).some((w) => w.bizId === 'biz-pc' && w.svcId === svc.id && w.dateIso === '2026-12-02')) fail('waitlist: not cleaned up after booking');
+  else ok('waitlist cleaned up after booking');
+})();
+
 // new tiles render
-['#/carpool', '#/lostfound', '#/ask'].forEach((r) => {
+['#/carpool', '#/lostfound', '#/ask', '#/map', '#/visit'].forEach((r) => {
   location.hash = r; RW.render();
   const h = elements.app.innerHTML || '';
   if (h.length < 400 || /undefined|NaN|native code/.test(h)) fail(r + ' render issue');

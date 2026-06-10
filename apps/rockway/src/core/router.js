@@ -8,11 +8,16 @@
   let root;
   let frontierTimer = null; // generic per-screen ticker slot
 
+  let lastHash = null;
   function render() {
     if (!root) root = document.getElementById('app');
     if (frontierTimer) { clearInterval(frontierTimer); frontierTimer = null; }
 
     const hash = location.hash || '#/';
+    // animate screen transitions only on real navigation — live-data refreshes
+    // re-render in place and must not flash the fade-in again
+    RW.navAnim = hash !== lastHash;
+    lastHash = hash;
     const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
     const id = parts[0] || 'home';
     const feature = RW.getFeature(id) || RW.getFeature('home');

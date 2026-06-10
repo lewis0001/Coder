@@ -121,7 +121,7 @@
       '<span class="go">›</span></button>';
 
     // No top bar — the living Rock hero is the header.
-    return '<div class="screen fade-in">' + hero() + '<div class="pad">' + body + '<div style="height:24px"></div></div></div>' +
+    return '<div class="screen' + (RW.navAnim ? ' fade-in' : '') + '">' + hero() + '<div class="pad">' + body + '<div style="height:24px"></div></div></div>' +
       RW.ui.tabbar('home');
   }
 
