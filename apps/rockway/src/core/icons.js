@@ -21,6 +21,16 @@
       '<path d="M14 14l5 5" ' + A + '/>' +
       '<path d="M8 10.4h4.8M10.4 8v4.8" ' + G + '/>'
     ),
+    map: wrap(
+      '<path d="M4.6 6.8l4.8-2 5.2 2 4.8-2v12.4l-4.8 2-5.2-2-4.8 2z" ' + S + '/>' +
+      '<path d="M9.4 4.8v12.4M14.6 6.8v12.4" ' + S + '/>' +
+      '<circle cx="12" cy="11" r="1.1" fill="var(--brand)" stroke="none"/>'
+    ),
+    visit: wrap(
+      '<circle cx="12" cy="12" r="7.6" ' + S + '/>' +
+      '<path d="M12 7.6V12l3 1.8" ' + A + '/>' +
+      '<path d="M12 4.4v1.4M12 18.2v1.4M4.4 12h1.4M18.2 12h1.4" ' + G + '/>'
+    ),
     move: wrap(
       '<rect x="5" y="4.6" width="14" height="12.4" rx="2.4" ' + S + '/>' +
       '<path d="M5 11h14" ' + S + '/><path d="M8 4.6v6.4M16 4.6v6.4" ' + S + '/>' +

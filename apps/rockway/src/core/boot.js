@@ -32,6 +32,8 @@
     'src/features/frontier.js',   // live cameras + community crowd-reports
     'src/features/carpool.js',    // frontier lift board (honest noticeboard)
     'src/features/move.js',       // live bus tracker + taxi + cable car
+    'src/features/map.js',        // map of the Rock (lazy-loaded Leaflet + OSM)
+    'src/features/visit.js',      // visitor planner: "I have X hours" + practical pack
     'src/features/marketplace.js',
     'src/features/jobs.js',
     'src/features/property.js',

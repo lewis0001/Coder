@@ -61,6 +61,8 @@
     { id: 'today', label: 'Today', route: '#/today' },
     { id: 'events', label: 'What’s On' },
     { id: 'explore', label: 'Explore' },
+    { id: 'map', label: 'Map' },
+    { id: 'visit', label: 'Visiting?' },
     { id: 'news', label: 'News' },
     { id: 'marketplace', label: 'Buy & Sell' },
     { id: 'jobs', label: 'Jobs' },
