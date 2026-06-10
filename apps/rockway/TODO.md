@@ -28,6 +28,37 @@ delivery ops, no fabricated "live" data.
   Frontier honest copy + holiday flags · Account fully wired (toggles,
   addresses, help/about) · design system v2 palette discipline (integrator)
 
+### Phase 2 — Live data instruments ✅ DONE (verified live in browser)
+- [x] Six soft-fail proxies in server.js (news, weather+marine, flights,
+  pharmacy, holidays GI/ES, fixtures) + RW.live client (TTL, skeletons, fallback)
+- [x] Weather & Sea: live Open-Meteo drives the whole app; custom Levanter
+  compass dial, temp sparkline, tide ribbon, beach/UV cards
+- [x] Runway: live flight schedule → pedestrian-crossing closure countdown +
+  custom SVG day-strip; flashes the Rock illustration on real closures
+- [x] Today on the Rock: composed briefing (weather + holidays + live duty
+  pharmacy + runway + matchday) — the retention card
+- [x] Frontier holiday flags (GI + Andalucía)
+
+### Design elevation ✅ DONE (de-AI pass)
+- [x] Custom hand-drawn line-icon set (src/core/icons.js) — no emoji-in-pastel
+- [x] Careem/Talabat-style service launchpad with live data baked into tiles
+- [x] "Limestone & Key" v2: Fraunces editorial display face, hairline surfaces,
+  de-glowed buttons, ink chips, dot-indicator tab bar, warm limestone canvas
+
+### Phase 3 — Booking depth ⏳ NOT STARTED (agents hit session limit, 0 tokens)
+Store contract ready (RW.S.reviews added; bookings to carry whenIso/slot):
+- [ ] Discover: double-booking prevention (takenSlots) + machine-readable slot
+  on bookings + customer review write-back after a confirmed/past booking
+- [ ] Activity: booking detail with Cancel + Change-time; status pills/dimming
+- [ ] Business: this-week schedule, block-out times, Accept/Decline → sync the
+  customer's booking status
+- [ ] Global search across all registries · PWA manifest + service worker
+
+### Phase 4 — Multiplayer & launch (unchanged — see docs/PLAN.md)
+- [ ] Supabase (auth + shared listings/bookings/reviews) · moderation ·
+  monetization (featured/job posts; verify Stripe-GI) · legal · deploy
+
+
 ### Phase 2 — Novel live data ✅ DONE (this wave; all six proxies verified live)
 - [x] Weather & Sea: live Open-Meteo + Levanter meter dial + 24h sparkline +
   tide ribbon + beaches + UV; overrides RW.api.weather app-wide
