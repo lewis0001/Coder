@@ -12,6 +12,9 @@
     "calibration": "node scripts/calibration-study.js",
     "sweep": "node scripts/sweep.js",
     "fetch-data": "node scripts/fetch-research-data.js",
+    "rewards": "node scripts/scan-rewards.js",
+    "yield": "node scripts/scan-yield.js",
+    "xvenue": "node scripts/scan-xvenue-feefree.js",
     "reset": "rm -f data/state.json"
   },
   "engines": { "node": ">=18" }
