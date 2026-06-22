@@ -86,11 +86,19 @@ function yesNoTokens(m) {
 // "$64,000", "$2.5", "150", "1+ goals", etc. Returns a Number or null.
 function parseThreshold(q) {
   const s = String(q || '');
-  // $-amounts first (with commas / decimals / k-m suffix)
-  let m = s.match(/\$\s*([\d][\d,]*(?:\.\d+)?)\s*([kKmMbB])?/);
+  // $-amounts first (with commas / decimals / optional k/m/b suffix). The suffix
+  // must be IMMEDIATELY attached (e.g. "$2.5k"), never a following word — so
+  // "$90 by end" does NOT read the "b" of "by". We anchor the suffix with no
+  // intervening space and a trailing boundary.
+  let m = s.match(/\$\s*([\d][\d,]*(?:\.\d+)?)([kKmMbB])(?![a-z])/);
   if (m) return scaleNum(m[1], m[2]);
+  m = s.match(/\$\s*([\d][\d,]*(?:\.\d+)?)/);
+  if (m) return scaleNum(m[1], null);
   // "N+ goals/shots/..." player-prop style
   m = s.match(/\b(\d+)\s*\+/);
+  if (m) return Number(m[1]);
+  // degrees / bare units e.g. "27°C", "27 C"
+  m = s.match(/\b(-?\d+(?:\.\d+)?)\s*°?\s*[cf]\b/i);
   if (m) return Number(m[1]);
   // bare number fallback (avoid years like 2026/2027/2028 when possible)
   const nums = [...s.matchAll(/\b(\d[\d,]*(?:\.\d+)?)\b/g)].map((x) => Number(x[1].replace(/,/g, '')));
@@ -110,15 +118,56 @@ function scaleNum(numStr, suf) {
   return n;
 }
 
-/* Direction of a threshold question:
-     +1  => "YES means value is ABOVE/>= the threshold" (above/reach/hit/exceed/more)
-     -1  => "YES means value is BELOW/<= the threshold" (below/under/dip to/less than)
-   For nested-threshold logic we only compare questions of the SAME direction. */
-function thresholdDirection(q) {
+/* CLASSIFY a threshold question for NESTED-THRESHOLD eligibility.
+
+   This is the crucial correctness gate. Nested-threshold arb is ONLY valid
+   when the YES outcome is a CUMULATIVE half-line over a single boundary:
+       dir=+1 : YES iff value >  X  (or >= X)   "above/over/reach/hit (HIGH)/
+                                                  or higher/at least/N+"
+       dir=-1 : YES iff value <  X  (or <= X)   "below/under/dip to/hit (LOW)/
+                                                  or below/or less"
+   It is INVALID — and dangerous (false locks) — for:
+     * EXACT-value buckets:  "be 27°C", "be exactly $X"   (disjoint points)
+     * RANGE buckets:        "between $X and $Y"           (disjoint intervals)
+   Those belong to mutually-exclusive negRisk sets, where "=27" is NOT a subset
+   of "=33". Returns { dir, thr } only for genuinely cumulative questions; else
+   null.
+
+   NOTE on "X or below": phrasings like "26°C or below" ARE cumulative half-lines
+   in isolation, but on Polymarket they appear as the bottom bucket of an
+   EXACT-VALUE negRisk ladder (the other rungs are exact points like "27°C").
+   Mixing a half-line bucket with exact-point buckets does NOT nest, so we only
+   trust a group when EVERY member is cumulative of the SAME open-ended style;
+   the exact-point members are rejected here, which dissolves those groups. */
+function classifyThreshold(q) {
   const s = String(q || '').toLowerCase();
-  if (/\b(below|under|less than|lower than|dip to|drop to|down to|or lower|or less)\b/.test(s)) return -1;
-  if (/\b(above|over|reach|reaches|hit|hits|exceed|greater|higher than|more than|or higher|or more|at least|\d+\s*\+)\b/.test(s)) return 1;
-  return 1; // default: "above" style is overwhelmingly the norm on these events
+
+  // Hard reject ranges — never nest.
+  if (/\bbetween\b.*\band\b/.test(s)) return null;
+
+  const thr = parseThreshold(q);
+  if (thr == null) return null;
+
+  // Explicit (HIGH)/(LOW) tag used by commodity "hit" ladders.
+  if (/\(high\)/.test(s)) return { dir: 1, thr };
+  if (/\(low\)/.test(s)) return { dir: -1, thr };
+
+  // Open-ended UPWARD half-line.
+  if (/\b(above|over|greater than|higher than|more than|at least|or higher|or more|or above|\d+\s*\+)\b/.test(s)) {
+    return { dir: 1, thr };
+  }
+  // Open-ended DOWNWARD half-line.
+  if (/\b(below|under|less than|lower than|dip to|drop to|fall to|down to|or lower|or less|or below)\b/.test(s)) {
+    return { dir: -1, thr };
+  }
+  // "reach/hit/touch X" (no HIGH/LOW tag) = cumulative "gets at least as high as X".
+  if (/\b(reach|reaches|hit|hits|touch|touches|surpass|exceed|exceeds)\b/.test(s)) {
+    return { dir: 1, thr };
+  }
+
+  // Anything else — e.g. "Will the highest temperature be 27°C?" / "be $X" —
+  // is an EXACT-VALUE bucket. NOT cumulative. Reject.
+  return null;
 }
 
 /* A normalized "subject key" for grouping threshold markets that share the
@@ -189,17 +238,24 @@ function temporalSubjectKey(eventId, q) {
    in every state. left/right .token is the exact CLOB token to BUY.
    ====================================================================== */
 
-/* 1) NESTED THRESHOLD pairs within a single event. */
+/* 1) NESTED THRESHOLD pairs within a single event.
+   CORRECTNESS GATE: only CUMULATIVE half-line questions nest. A negRisk event
+   is an exhaustive set of DISJOINT buckets (exact values / ranges) by
+   construction — never a cumulative threshold ladder — so we exclude negRisk
+   events from nested detection entirely and let them flow to mutexPairs. We
+   also require classifyThreshold() to confirm each member is a genuine
+   open-ended half-line (rejecting "be 27°C", "between $X and $Y", ...). */
 function nestedThresholdPairs(event) {
+  if (event && event.negRisk === true) return []; // disjoint buckets, not a ladder
   const pairs = [];
   const groups = new Map(); // subjectKey -> [{m, tokens, thr, dir}]
   for (const m of event.markets || []) {
     if (!isTradeable(m)) continue;
     const tokens = yesNoTokens(m);
     if (!tokens) continue;
-    const thr = parseThreshold(m.question);
-    if (thr == null) continue;
-    const dir = thresholdDirection(m.question);
+    const cls = classifyThreshold(m.question);
+    if (!cls) continue;                 // not a cumulative half-line — skip
+    const { thr, dir } = cls;
     const key = thresholdSubjectKey(event.id, m.question, dir);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push({ m, tokens, thr, dir });
@@ -352,7 +408,7 @@ module.exports = {
   isTradeable,
   yesNoTokens,
   parseThreshold,
-  thresholdDirection,
+  classifyThreshold,
   thresholdSubjectKey,
   parseDeadline,
   isCumulativeDeadline,

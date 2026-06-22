@@ -64,6 +64,42 @@ function takerFee(avgPrice, shares, feeSchedule, feesEnabled) {
   return takerFeePerShare(avgPrice, feeSchedule, feesEnabled) * shares;
 }
 
+/* ---- mutual-exclusivity classification --------------------------- */
+/* The buy-all-NO basket pays EXACTLY (K-1) ONLY if the legs form a true
+   one-winner partition (exactly one leg resolves YES). The honest signal
+   for that on Polymarket:
+     - event.negRisk === true  (Polymarket's "negative risk" adapter flag,
+       which it sets precisely for mutually-exclusive outcome sets), AND
+     - sum of per-leg YES prices ≈ 1 (a partition's probabilities sum to 1).
+   Plain (negRisk=false) multi-leg events are overwhelmingly OVERLAPPING /
+   INDEPENDENT yes/no questions (threshold ladders like "BTC hits $X",
+   "total corners over N.5", per-team prop bundles) whose YES prices sum to
+   5-18, NOT 1. On those, buying all-NO does NOT pay (K-1) — multiple or
+   zero legs resolve YES — so the "arb" is fake. We REQUIRE negRisk to even
+   consider a basket, and additionally sanity-check sumYES.
+
+   Returns { isMutex, sumYes, reason }. sumYes uses gamma YES prices
+   (mid-ish) when present, else null (then we lean on negRisk alone). */
+function classifyMutex(event, legs) {
+  const neg = !!event.negRisk;
+  let s = 0, n = 0;
+  for (const leg of legs) {
+    if (leg.gammaBestAsk != null && leg.gammaBestBid != null) { s += (leg.gammaBestAsk + leg.gammaBestBid) / 2; n++; }
+    else if (leg.gammaBestAsk != null) { s += leg.gammaBestAsk; n++; }
+  }
+  const sumYes = n === legs.length && n > 0 ? s : null;
+  // A partition's YES prices sum to ~1. Allow [0.5, 1.2]: the low tail covers
+  // partitions with a large unlisted "field/other" leg (e.g. Nobel), where the
+  // NO basket is still safe (all listed legs CAN all lose -> all NO pay).
+  const sumOk = sumYes == null ? true : (sumYes <= 1.2);
+  const isMutex = neg && sumOk;
+  let reason;
+  if (!neg) reason = 'not negRisk (overlapping/independent questions — all-NO does not pay K-1)';
+  else if (!sumOk) reason = `negRisk but sumYES=${sumYes.toFixed(2)}>1.2 (not a clean partition)`;
+  else reason = 'mutex (negRisk' + (sumYes != null ? `, sumYES=${sumYes.toFixed(2)}` : '') + ')';
+  return { isMutex, sumYes, reason };
+}
+
 /* ---- leg extraction ---------------------------------------------- */
 /* Turn an event's markets[] into clean legs with yes/no token ids and a
    fee schedule. Only keep order-book-enabled, open, active markets that
@@ -206,6 +242,6 @@ function relativeValue(legs, books, shares) {
 }
 
 module.exports = {
-  takerFeePerShare, takerFee, eventLegs,
+  takerFeePerShare, takerFee, eventLegs, classifyMutex,
   analyzeBuyAllNo, analyzeSingleLeg, relativeValue,
 };

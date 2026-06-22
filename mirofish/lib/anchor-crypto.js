@@ -206,9 +206,10 @@ async function deribitATMIV(chain, targetMs) {
 async function realizedVol(asset) {
   const sym = SYMBOLS[asset];
   if (!sym) return null;
-  // Coinbase Exchange candles (granularity 3600 = 1h), last ~14 days
+  // Coinbase Exchange candles (granularity 3600 = 1h). The API caps at
+  // 300 aggregations per request, so we use ~10 days (240 hourly candles).
   const end = new Date();
-  const start = new Date(end.getTime() - 14 * 24 * 3600 * 1000);
+  const start = new Date(end.getTime() - 10 * 24 * 3600 * 1000);
   const url = `https://api.exchange.coinbase.com/products/${sym}/candles?granularity=3600&start=${start.toISOString()}&end=${end.toISOString()}`;
   let rows;
   try { rows = await getJSON(url); } catch (e) { return null; }
@@ -223,7 +224,7 @@ async function realizedVol(asset) {
   const varr = rets.reduce((s, x) => s + (x - mean) * (x - mean), 0) / (rets.length - 1);
   const hourlyVol = Math.sqrt(varr);
   const sigma = hourlyVol * Math.sqrt(24 * 365); // annualize from hourly
-  return { sigma, source: 'realized-vol-14d-hourly' };
+  return { sigma, source: 'realized-vol-10d-hourly' };
 }
 
 /* ============================================================

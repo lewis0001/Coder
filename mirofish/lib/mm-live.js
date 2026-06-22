@@ -151,36 +151,49 @@ function snapshot(book, tick) {
 
    For each consecutive pair of snapshots (s0 -> s1) we use the
    quote levels we WOULD have been resting at, decided from s0
-   (no look-ahead), and test a strict trade-through using the
-   movement of the mid from s0.mid to s1.mid:
+   (no look-ahead): bidQuote = s0.bestBid + tick, askQuote =
+   s0.bestAsk - tick (one tick INSIDE on each side). We then ask:
+   between s0 and s1, did the book trade THROUGH our quote, i.e.
+   would a resting order at that price have been hit?
 
-     BID fills  when the mid falls THROUGH our bid quote:
-                s0.mid > bidQuote AND s1.mid < bidQuote
-                -> we BOUGHT at bidQuote. Captured edge vs s0.mid
-                   = s0.mid - bidQuote (= s0.spread/2 - tick).
-                   Adverse move = max(0, bidQuote - s1.mid)
-                   (the mid kept running below our buy).
+   We improve the book by one tick, so AFTER we post we are the new
+   best bid at bidQuote and the new best ask at askQuote (the spread
+   shrinks by 2 ticks around us). We are filled when the tape comes
+   to OUR price. Comparing the next snapshot s1 to our resting
+   levels, we treat as a trade-through:
 
-     ASK fills  when the mid rises THROUGH our ask quote:
-                s0.mid < askQuote AND s1.mid > askQuote
-                -> we SOLD at askQuote. Captured edge vs s0.mid
-                   = askQuote - s0.mid.
-                   Adverse move = max(0, s1.mid - askQuote).
+     BID hit when the market trades DOWN onto our bid:
+         s1.mid <= bidQuote
+       i.e. the mid fell to or below where our bid rested. Since
+       bidQuote sits a tick above s0.bestBid (well below s0.mid),
+       this only triggers when price actually moved DOWN to us —
+       not when the book sits still. Equivalent reads: best ask
+       fell to <= bidQuote (a sell crossed into us), or the entire
+       bid collapsed below us.
 
-   Net contribution of a fill (per share) = captured - adverse.
-   A round-trip needs one fill on each side; since fills arrive
-   asynchronously we aggregate per-SIDE and report:
+     ASK hit when the market trades UP onto our ask:
+         s1.mid >= askQuote
+       (askQuote is a tick below s0.bestAsk, above s0.mid, so this
+       needs price to move UP to us).
+
+   This is stricter than "touch = fill" yet far less starved than
+   "mid must cross all the way to the far quote", which on slow
+   markets almost never triggers in a short window. It models the
+   real event that fills a resting maker: the tape coming to you.
+
+   ADVERSE SELECTION (the honesty that killed naive MM): we mark
+   every fill to the SUBSEQUENT mid (s1.mid), never to the mid we
+   quoted around. You get hit BECAUSE price is moving against you.
+       captured(bid) = s0.mid - bidQuote   (edge vs quoted mid)
+       adverse(bid)  = max(0, bidQuote - s1.mid)  (mid ran below buy)
+       captured(ask) = askQuote - s0.mid
+       adverse(ask)  = max(0, s1.mid - askQuote)  (mid ran above sell)
+   Net per fill (per share) = captured - adverse. We aggregate per
+   SIDE (fills arrive asynchronously) and report:
      - per-side fill rate (fraction of intervals a side filled)
      - per-side captured & adverse (¢/share)
      - net edge per ROUND-TRIP = (capturedBid+capturedAsk)
-                                 - (adverseBid+adverseAsk),
-       i.e. the spread you earn buying low + selling high MINUS
-       the adverse drift you ate on both legs.
-
-   This is deliberately conservative: trade-through-only fills
-   UNDERcount fills (a resting maker at the touch gets hit more
-   often than the mid strictly crossing), while adverse marking
-   to the next mid FULLY charges the information in the move.
+                                 - (adverseBid+adverseAsk).
    ============================================================ */
 function estimateMarket(series, ctx = {}) {
   const n = series.length;
@@ -202,17 +215,19 @@ function estimateMarket(series, ctx = {}) {
 
     const bidQuote = s0.bidQuote, askQuote = s0.askQuote;
 
-    // BID fill: mid fell strictly through our resting bid quote.
-    if (s0.mid > bidQuote && s1.mid < bidQuote) {
+    // BID fill: the market traded DOWN onto our resting bid (a tick inside).
+    // Triggers only when the next mid reached our bid level — i.e. price
+    // actually moved down to us, not when the book sat still.
+    if (s1.mid <= bidQuote) {
       bidFills++;
       capBid += (s0.mid - bidQuote);                 // earned vs the mid we quoted around
-      advBid += Math.max(0, bidQuote - s1.mid);      // mid ran below our buy
+      advBid += Math.max(0, bidQuote - s1.mid);      // mid ran below our buy (adverse)
     }
-    // ASK fill: mid rose strictly through our resting ask quote.
-    if (s0.mid < askQuote && s1.mid > askQuote) {
+    // ASK fill: the market traded UP onto our resting ask (a tick inside).
+    if (s1.mid >= askQuote) {
       askFills++;
       capAsk += (askQuote - s0.mid);
-      advAsk += Math.max(0, s1.mid - askQuote);      // mid ran above our sell
+      advAsk += Math.max(0, s1.mid - askQuote);      // mid ran above our sell (adverse)
     }
   }
 

@@ -68,10 +68,13 @@ function money(x) { return x == null ? 'n/a' : '$' + (+x).toFixed(2); }
   // Analyze every candidate.
   const reports = [];
   for (const c of candidates) {
+    const mx = am.classifyMutex(c.event, c.legs);
     const r = am.analyzeBuyAllNo(c.legs, books, CLIP);
     const singles = am.analyzeSingleLeg(c.legs, books, CLIP);
-    reports.push({ event: c.event, legs: c.legs, r, singles });
+    reports.push({ event: c.event, legs: c.legs, mx, r, singles });
   }
+  const mutexReports = reports.filter((x) => x.mx.isMutex);
+  const plainReports = reports.filter((x) => !x.mx.isMutex);
 
   /* ---------- distribution stats ---------- */
   const withNoFee = reports.filter((x) => isFinite(x.r.noCostMinusK1NoFee));
@@ -86,9 +89,10 @@ function money(x) { return x == null ? 'n/a' : '$' + (+x).toFixed(2); }
   }
 
   /* ---------- net-positive executable baskets ---------- */
-  // A basket trade counts ONLY if every required leg fully fills the clip
-  // AND net edge after fees > 0.
-  const basketWins = reports
+  // A basket trade counts ONLY if: (a) the event is a TRUE mutex partition
+  // (else all-NO does not pay K-1), (b) every required leg fully fills the
+  // clip, AND (c) net edge after fees > 0.
+  const basketWins = mutexReports
     .filter((x) => x.r.allFill && x.r.netEdge > 0)
     .sort((a, b) => b.r.netPerDollarSet - a.r.netPerDollarSet);
 
@@ -98,14 +102,15 @@ function money(x) { return x == null ? 'n/a' : '$' + (+x).toFixed(2); }
 
   /* ---------- print basket wins ---------- */
   console.log('============================================================');
-  console.log('STRUCTURE 1+2: BUY-ALL-NO BASKET (executable, net-positive after fees+slippage)');
+  console.log('STRUCTURE 1+2: BUY-ALL-NO BASKET on TRUE MUTEX events');
+  console.log('(executable, net-positive after fees+slippage; mutex = one-winner partition)');
   console.log('============================================================');
   if (!basketWins.length) {
-    console.log('  none — no full-fill basket nets positive after real slippage + taker fees.\n');
+    console.log('  none — no full-fill mutex basket nets positive after real slippage + taker fees.\n');
   } else {
     for (const w of basketWins) {
       const r = w.r;
-      console.log(`\n* ${w.event.title}  [${r.K} legs, ${w.event.negRisk ? 'negRisk' : 'plain'}, vol24=$${Math.round(w.event.volume24hr || 0).toLocaleString()}]`);
+      console.log(`\n* ${w.event.title}  [${r.K} legs, ${w.mx.reason}, vol24=$${Math.round(w.event.volume24hr || 0).toLocaleString()}]`);
       console.log(`    buy ${r.shares} NO on every leg → guaranteed payout $${r.payout}`);
       console.log(`    executable cost (real asks): ${money(r.totalCostNoFee)}  + fees ${money(r.totalCost - r.totalCostNoFee)}  = ${money(r.totalCost)}`);
       console.log(`    NET EDGE = ${money(r.netEdge)}  (${f(r.netPerDollarSet * 100, 3)}¢ per $1-set)`);
@@ -132,18 +137,30 @@ function money(x) { return x == null ? 'n/a' : '$' + (+x).toFixed(2); }
   if (!singleCount) console.log('  none.\n');
   else console.log(`  (${singleCount} single-leg locks total${singleCount > 25 ? ', showing first 25' : ''})\n`);
 
-  /* ---------- top-N closest baskets (diagnostic) ---------- */
+  /* ---------- top-N closest MUTEX baskets (diagnostic) ---------- */
   if (TOP > 0) {
     console.log('============================================================');
-    console.log(`DIAGNOSTIC: top ${TOP} baskets by (lowest after-fee NO cost − (K−1)), full-fill only`);
+    console.log(`DIAGNOSTIC: top ${TOP} TRUE-MUTEX baskets by (after-fee NO cost − (K−1)), full-fill only`);
+    console.log('(how tight the legit one-winner baskets are arbed; <0 = net arb)');
     console.log('============================================================');
-    const closest = reports
+    const closest = mutexReports
       .filter((x) => x.r.allFill && isFinite(x.r.noCostMinusK1))
       .sort((a, b) => a.r.noCostMinusK1 - b.r.noCostMinusK1)
       .slice(0, TOP);
     for (const w of closest) {
       const r = w.r;
-      console.log(`  ${f(r.noCostMinusK1)}  net=${money(r.netEdge)}  K=${r.K}  cap=${Math.floor(r.capacityShares)}  ${w.event.negRisk ? 'negRisk' : 'plain'}  ${w.event.title}`);
+      console.log(`  ${f(r.noCostMinusK1)}  net=${money(r.netEdge)}  K=${r.K}  cap=${Math.floor(r.capacityShares)}  sumYES=${f(w.mx.sumYes, 3)}  ${w.event.title}`);
+    }
+    console.log();
+    // Show what the plain (non-mutex) "arbs" look like so it's explicit they are fake.
+    console.log('--- for contrast: plain (NON-mutex) events flagged by naive all-NO < (K-1) ---');
+    console.log('--- these are NOT tradeable: legs overlap, all-NO does NOT pay (K-1) ---');
+    const fakePlain = plainReports
+      .filter((x) => x.r.allFill && x.r.noCostMinusK1 < -0.05)
+      .sort((a, b) => a.r.noCostMinusK1 - b.r.noCostMinusK1)
+      .slice(0, 8);
+    for (const w of fakePlain) {
+      console.log(`  naiveEdge=${money(w.r.netEdge)}  K=${w.r.K}  overround(sumYESask−1)=${f(w.r.overround)}  ${w.event.title}`);
     }
     console.log();
   }
@@ -155,9 +172,10 @@ function money(x) { return x == null ? 'n/a' : '$' + (+x).toFixed(2); }
   console.log('============================================================');
   console.log(`  live events pulled:            ${events.length}`);
   console.log(`  candidate events (${MIN_LEGS}-${MAX_LEGS} legs):  ${reports.length}`);
-  console.log(`     of which negRisk:           ${reports.filter((x) => x.event.negRisk).length}`);
-  console.log(`     of which plain (non-negRisk):${reports.filter((x) => !x.event.negRisk).length}`);
-  console.log(`  baskets that FULLY FILL ${CLIP}-clip on every leg:  ${fullFill.length}`);
+  console.log(`     TRUE MUTEX (one-winner partition): ${mutexReports.length}`);
+  console.log(`     plain/overlapping (NOT mutex):     ${plainReports.length}`);
+  console.log(`  mutex baskets that FULLY FILL ${CLIP}-clip on every leg:  ${mutexReports.filter((x) => x.r.allFill).length}`);
+  console.log(`  (all-events full-fill, incl. non-tradeable plain: ${fullFill.length})`);
   console.log(`  leg-count distribution (candidates):`);
   {
     const buckets = {};
@@ -167,19 +185,27 @@ function money(x) { return x == null ? 'n/a' : '$' + (+x).toFixed(2); }
     }
     for (const k of ['3-5', '6-10', '11-20', '21-40']) console.log(`     ${k} legs: ${buckets[k] || 0}`);
   }
-  console.log(`\n  DIST of (basket NO cost − (K−1)) BEFORE fees, ${noMinusK1.length} events:`);
-  console.log(`     ${quantiles(noMinusK1)}`);
-  console.log(`     <0 before fees (gross arb signal): ${noMinusK1.filter((x) => x < 0).length}`);
+  // The honest distributions are over TRUE MUTEX events only.
+  const mFull = mutexReports.filter((x) => x.r.allFill);
   {
-    // after-fee distribution among full-fill baskets (the honest one)
-    const af = fullFill.map((x) => x.r.noCostMinusK1).sort((a, b) => a - b);
-    console.log(`  DIST of (basket NO cost − (K−1)) AFTER fees, full-fill baskets (${af.length}):`);
+    const before = mutexReports.filter((x) => isFinite(x.r.noCostMinusK1NoFee)).map((x) => x.r.noCostMinusK1NoFee).sort((a, b) => a - b);
+    console.log(`\n  [MUTEX] DIST of (basket NO cost − (K−1)) BEFORE fees, ${before.length} events:`);
+    console.log(`     ${quantiles(before)}`);
+    console.log(`     <0 before fees (gross arb signal): ${before.filter((x) => x < 0).length}`);
+    const af = mFull.map((x) => x.r.noCostMinusK1).sort((a, b) => a - b);
+    console.log(`  [MUTEX] DIST of (basket NO cost − (K−1)) AFTER fees, full-fill (${af.length}):`);
     console.log(`     ${quantiles(af)}`);
     console.log(`     <0 after fees (NET ARB): ${af.filter((x) => x < 0).length}`);
   }
-  console.log(`\n  DIST of (sum YES ask − 1) overround, ${overround.length} events (all legs quoted):`);
-  console.log(`     ${quantiles(overround)}`);
-  console.log(`     >0 (YES basket overpriced): ${overround.filter((x) => x > 0).length}`);
+  {
+    const ovr = mutexReports.filter((x) => x.r.overround != null).map((x) => x.r.overround).sort((a, b) => a - b);
+    console.log(`\n  [MUTEX] DIST of (sum YES ask − 1) overround, ${ovr.length} events (all legs quoted):`);
+    console.log(`     ${quantiles(ovr)}`);
+    console.log(`     >0 (YES basket overpriced — short via all-NO): ${ovr.filter((x) => x > 0).length}`);
+  }
+  console.log(`\n  [ALL incl. plain] DIST of (NO cost − (K−1)) BEFORE fees, ${noMinusK1.length}:  ${quantiles(noMinusK1)}`);
+  console.log(`  [ALL incl. plain] DIST of (sum YES ask − 1), ${overround.length}:  ${quantiles(overround)}`);
+  console.log(`     (plain events dominate the extreme tails; they are NOT tradeable baskets)`);
 
   console.log(`\n  NET-POSITIVE executable basket arbs (full-fill, after fees): ${basketWins.length}`);
   console.log(`  NET-POSITIVE single-leg locks:                              ${singleCount}`);
