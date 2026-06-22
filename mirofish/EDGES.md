@@ -27,3 +27,23 @@ The gross edges above are real; they're killed by the 3–7% taker fee. But **ge
 
 Updated as agents report. The honest bar is high on purpose: a clean backtest
 you can't fill is worse than no edge.
+
+---
+
+## SOLUTIONS THAT ACTUALLY PAY (the honest answer)
+
+Every *directional / arbitrage* hypothesis above is ❌ net of real cost — the
+books are efficient where liquid and fee-protected (3–7% taker) where they're
+not. **Profit on Polymarket does not come from predicting better; it comes from
+harvesting the platform's liquidity incentives.** Confirmed, tradeable:
+
+### ✅ Solution 1 — Liquidity-rewards farming (maker rewards)
+Polymarket pays ~**$60k/day** across **302** markets to makers who rest orders
+within `rewardsMaxSpread` of the midpoint (paid for *presence in the band*, not
+fills). On **deep, stable, low-volatility** markets a disciplined maker clears
+**~1–2%/day net of adverse selection** at $1k–5k/market (higher on near-resolved
+daily markets, but ephemeral). Discipline: only farm markets the live
+volatility sampler flags as stable; quote at the wide max-spread; size for the
+capacity-diluted yield. Tools: `lib/rewards.js`, `scripts/scan-rewards.js`.
+Risk: adverse selection if the mid moves (volatile markets lose); inventory.
+
