@@ -96,25 +96,37 @@ function pmYesNoTokens(m) {
   return { yesToken: toks[yi], noToken: toks[ni], yesPrice: +pmParseArr(m.outcomePrices)[yi] };
 }
 
-/* Identify PM "Will <Team> win on <date>?" winner markets.
-   We pull the date from the question text (preferred) or endDate,
-   and the team from groupItemTitle / the question. */
+/* Pull the two teams of a fixture from a "A vs. B" / "A vs B" title. */
+function parseFixtureTitle(title) {
+  const mm = /^(.+?)\s+vs\.?\s+(.+?)$/i.exec(String(title || '').trim());
+  if (!mm) return null;
+  // strip trailing qualifiers PM sometimes appends (" - More Markets", etc.)
+  const a = mm[1].replace(/\s*-\s*.*$/, '').trim();
+  const b = mm[2].replace(/\s*-\s*.*$/, '').trim();
+  if (!a || !b) return null;
+  return { a, b, keys: [teamKey(a), teamKey(b)].sort() };
+}
+
+/* Identify PM SINGLE-GAME winner markets — STRICT.
+   ONLY the exact form "Will <Team> win on <YYYY-MM-DD>?" counts. This is the
+   one PM phrasing that means "this team wins THIS dated match". We DELIBERATELY
+   reject everything else (e.g. "Will X win the World Cup?", "Will X win Group I?")
+   because those are tournament/group futures, NOT a single game — matching them
+   to a Kalshi single-game market is a wrong match (fake arb). We also capture
+   the opponent (the fixture) from the PM event title so the caller can require
+   BOTH teams to agree, not just one team + date. */
 function pmExtractGameWinner(m) {
-  const q = m.question || '';
-  // "Will <Team> win on 2026-06-22?"
-  let mm = /^Will (.+?) win on (\d{4}-\d{2}-\d{2})\??$/i.exec(q.trim());
-  let team = null, date = null;
-  if (mm) { team = mm[1].trim(); date = mm[2]; }
-  else {
-    // fall back: team from groupItemTitle, date from endDate
-    if (/ win( on|s)?\b/i.test(q) && m.groupItemTitle && !/draw|tie/i.test(m.groupItemTitle)) {
-      team = m.groupItemTitle.trim();
-      date = isoDay(m.gameStartTime || m.endDate);
-    }
-  }
-  if (!team || !date) return null;
-  if (/draw|tie/i.test(team)) return null;
-  return { team, date, teamKey: teamKey(team) };
+  const q = (m.question || '').trim();
+  const mm = /^Will (.+?) win on (\d{4}-\d{2}-\d{2})\??$/i.exec(q);
+  if (!mm) return null;                       // strict: no fallback
+  const team = mm[1].trim();
+  const date = mm[2];
+  if (/draw|tie|group|the \d{4}|world cup|tournament/i.test(team)) return null;
+  // opponent / fixture from the PM event title
+  let fixture = null;
+  const ev = (m.events && m.events[0]) || null;
+  if (ev && ev.title) fixture = parseFixtureTitle(ev.title);
+  return { team, date, teamKey: teamKey(team), fixture };
 }
 
 /* Identify PM "Will the price of Bitcoin be above $X on <date>?" markets. */
@@ -148,7 +160,9 @@ function kIsGameWinner(km) {
 }
 function kGameWinnerInfo(km) {
   const date = kalshiTickerDate(km.ticker) || isoDay(km.closeTime);
-  return { team: km.yesSubTitle.trim(), teamKey: teamKey(km.yesSubTitle), date };
+  // Kalshi event title is "Team A vs Team B" (full names) — gives us the fixture.
+  const fixture = parseFixtureTitle(km.eventTitle);
+  return { team: km.yesSubTitle.trim(), teamKey: teamKey(km.yesSubTitle), date, fixture };
 }
 
 function kIsCryptoAbove(km) {
@@ -209,7 +223,13 @@ function buildMatches(pmMarkets, kalshiMarkets) {
       let km = null, usedDate = null;
       for (const dd of cand) {
         const hit = kGameByKey.get(`${dd}|${g.teamKey}`);
-        if (hit) { km = hit; usedDate = dd; break; }
+        if (!hit) continue;
+        // REQUIRE the full fixture (both teams) to agree, not just one team + date.
+        // This blocks pairing a team's group/other game with the wrong opponent.
+        const kf = hit._g.fixture, pf = g.fixture;
+        if (!kf || !pf) continue;                       // need both fixtures known
+        if (kf.keys[0] !== pf.keys[0] || kf.keys[1] !== pf.keys[1]) continue;
+        km = hit; usedDate = dd; break;
       }
       if (km) {
         const key = `game|${km.ticker}|${m.id}`;
@@ -256,7 +276,7 @@ function buildMatches(pmMarkets, kalshiMarkets) {
 }
 
 module.exports = {
-  norm, teamKey, isoDay, kalshiTickerDate,
+  norm, teamKey, isoDay, kalshiTickerDate, parseFixtureTitle,
   pmYesNoTokens, pmExtractGameWinner, pmExtractCryptoThreshold,
   kIsGameWinner, kGameWinnerInfo, kIsCryptoAbove, kCryptoInfo,
   buildMatches,

@@ -145,7 +145,13 @@ async function main() {
       .filter(Boolean)
       .sort((a, b) => b.netPerPair - a.netPerPair)[0] || null;
 
-    priced.push({ mt, A, B, best });
+    // also compute the BEST-CASE 1-contract cost of each basket (for near-miss
+    // reporting even when there's no executable edge): how close to $1 we got.
+    const oneA = (() => { const p = ob.buyCost(pmYesBook, 1), k = K.buyCostKalshi(kbook.noAsks, 1); return (p.exhausted || k.exhausted) ? null : p.cost + k.cost; })();
+    const oneB = (() => { const p = ob.buyCost(pmNoBook, 1), k = K.buyCostKalshi(kbook.yesAsks, 1); return (p.exhausted || k.exhausted) ? null : p.cost + k.cost; })();
+    const bestOne = [oneA, oneB].filter((x) => x != null).sort((a, b) => a - b)[0];
+
+    priced.push({ mt, A, B, best, bestOne });
     if (VERBOSE) {
       process.stdout.write(`  [${idx}/${matches.length}] ${mt.kind} ${best ? 'EDGE ' + c2(best.netPerPair) + 'c/$1 x' + best.size : '-'}\n`);
     }
@@ -177,6 +183,15 @@ async function main() {
 
   if (!profitable.length) {
     console.log('\n  >>> NONE. No matched pair clears spread+fees at executable size right now.');
+    // near-miss: the matched pairs whose best 1-contract basket came CLOSEST to $1
+    const nm = priced.filter((p) => p.bestOne != null).sort((a, b) => a.bestOne - b.bestOne).slice(0, 8);
+    if (nm.length) {
+      console.log('\n  Closest near-misses (best-basket cost for 1 contract, incl. fees; need < $1.00):');
+      for (const p of nm) {
+        const shortfall = (p.bestOne - 1) * 100;
+        console.log(`    cost ${usd(p.bestOne)}  (${shortfall >= 0 ? '+' : ''}${shortfall.toFixed(2)}c vs breakeven)  ${p.mt.label.slice(0, 72)}`);
+      }
+    }
   } else {
     for (const p of profitable) {
       const b = p.best;

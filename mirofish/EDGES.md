@@ -13,7 +13,7 @@ Status legend: 🔎 testing · ✅ confirmed tradeable · ⚠️ real-but-margin
 |---|------------------|--------|--------|-----------------------------|-------------------|
 | 1 | Logical arb (nested thresholds / temporal) | live book-cross scan | 🔎 | — | ladders dead-efficient (hist); temporal illiquid |
 | 2 | Multi-outcome basket / overround | live book scan | 🔎 | — | liquid negRisk arbed to ~1¢ |
-| 3 | Cross-venue Polymarket↔Kalshi | match + live quotes + Kalshi fees | 🔎 | — | matching confidence + fees |
+| 3 | Cross-venue Polymarket↔Kalshi | match + live quotes + Kalshi fees | ❌ | 58 matches, max gap 1.5¢, 0 net-positive after ~2¢ Kalshi fee + spreads | venues tightly arbed; need >3–4¢ gap |
 | 4 | Crypto fair-value vs Deribit/Coinbase | BS fair-prob vs live book | ❌ | threshold mkts match Deribit to ±0.2¢; 0 executable; gaps = model error | PM crypto efficient where model valid |
 | 5 | Spread-capture (passive MM) | live book sampling | 🔎 | — | adverse selection / inventory |
 | 6 | Fade-longshot on liquid markets | live screen + fwd log + liquid-subset OOS | ❌ | liquid half +0.003/sh, CI∋0; OOS [−0.10,+0.10]; negative at stricter liquidity | edge lives only in unfillable illiquid markets |
