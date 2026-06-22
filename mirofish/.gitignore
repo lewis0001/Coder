@@ -3,5 +3,6 @@ data/*.tmp
 data/history/
 data/resolved-crypto-markets.json
 data/value-dataset.json
+data/research/
 node_modules/
 *.log
