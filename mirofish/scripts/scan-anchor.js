@@ -72,6 +72,13 @@ const JSON_OUT = !!arg('json', false);
 // that's a stale-anchor artifact, not edge. We still ANCHOR these (they
 // show in calibration) but never trade them.
 const MIN_TAU_DAYS = +arg('min-tau-days', 0.25);
+// A fairP that has saturated to ~0/1 carries NO usable signal: it is exactly
+// where ATM-lognormal is least trustworthy (fat tails / vol smile make far
+// strikes far more likely than the model says) and where any spot/sigma error
+// blows up. Never trade off a saturated anchor. Also gate strikes that are
+// many daily-sigmas from forward (the unreliable tail).
+const SAT_LO = 0.02, SAT_HI = 0.98;     // fairP must be inside (2%, 98%) to trade
+const MAX_SIGMA_DIST = +arg('max-sigma-dist', 3.0); // |ln(K/F)|/(sigma*sqrt(tau)) cap
 
 /* --------------------- asset detection --------------------- */
 const ASSET_PATTERNS = [
@@ -220,10 +227,12 @@ async function main() {
     else if (cls.type === 'reach') { strike = cls.strike; note = 'touch>= (anchored as terminal P(S_T>=K); upper bound err: ignores intra-path touch)'; }
     else if (cls.type === 'dip') { strike = cls.strike; note = 'touch<= (anchored as terminal P(S_T<=K); upper bound err: ignores intra-path touch)'; }
     else if (cls.type === 'updown') { strike = null; note = 'K=live forward (P(S_end>S_now))'; }
-    else anchorable = false;
+    else if (cls.type === 'range') { strike = cls.lo; note = 'range P(lo<S_T<hi)=P(>lo)-P(>hi)'; }
+    else { anchorable = false; note = cls.type === 'unknown' ? 'unrecognized question form' : 'unsupported'; }
 
     if (!expiryMs) { anchorable = false; note = 'no endDate'; }
     if (anchorable && cls.type !== 'updown' && !(strike > 0)) { anchorable = false; note = 'unparsed strike'; }
+    if (cls.type === 'range' && !(cls.hi > cls.lo)) { anchorable = false; note = 'bad range bounds'; }
 
     // fair P
     let fair = null;
@@ -248,8 +257,14 @@ async function main() {
             } else if (cls.type === 'dip') {
               // "dip <= K": YES if terminal below K => 1 - P(S_T>K)
               fair = { ...fair, fairP: 1 - fair.fairP };
+            } else if (cls.type === 'range') {
+              // P(lo<S_T<hi) = P(S_T>lo) - P(S_T>hi); reuse same sigma/forward
+              const hiFair = await fairProbAbove({ asset, strike: cls.hi, expiryMs, chains, spotCache, rvCache });
+              const pLo = fair.fairP, pHi = hiFair ? hiFair.fairP : null;
+              if (pHi == null) { fair = null; }
+              else fair = { ...fair, fairP: Math.max(0, pLo - pHi), rangeHi: cls.hi };
             }
-            fair = { ...fair, strikeUsed: K };
+            if (fair) fair = { ...fair, strikeUsed: K };
           }
         }
       } catch (e) { fair = null; }
@@ -284,6 +299,8 @@ async function main() {
     rows.push({
       q, asset, type: cls.type, side: cls.side, anchorable: true, note,
       strike: fair.strikeUsed, expiryMs, tauDays: fair.tau * 365,
+      sigmaDist: (fair.sigma > 0 && fair.tau > 0 && fair.strikeUsed > 0 && fair.forward > 0)
+        ? Math.abs(Math.log(fair.strikeUsed / fair.forward)) / (fair.sigma * Math.sqrt(fair.tau)) : null,
       spot: fair.spot, forward: fair.forward, sigma: fair.sigma, source: fair.source, detail: fair.detail,
       fairP, execMid,
       yesAsk: yesExec ? yesExec.avgPrice : null, yesExhausted: yesExec ? yesExec.exhausted : null,
@@ -347,6 +364,8 @@ function report(rows, t0) {
   const signals = [], suppressed = [];
   for (const r of tradeable) {
     const tauOK = r.tauDays != null && r.tauDays >= MIN_TAU_DAYS;
+    const satOK = r.fairP > SAT_LO && r.fairP < SAT_HI;
+    const distOK = r.sigmaDist == null || r.sigmaDist <= MAX_SIGMA_DIST;
     for (const [dir, edge, halfSpread, exec, cap] of [
       ['BUY YES', r.edgeYES, r.halfSpreadYes, r.yesAsk, r.yesCapUSD],
       ['BUY NO', r.edgeNO, r.halfSpreadNo, r.noAsk, r.noCapUSD],
@@ -354,6 +373,8 @@ function report(rows, t0) {
       if (!qualifies(edge, halfSpread)) continue;
       const rec = { ...r, dir, edge, exec, capUSD: cap };
       if (!tauOK) { suppressed.push({ ...rec, reason: `tau ${r.tauDays.toFixed(3)}d < ${MIN_TAU_DAYS}d (near-resolution; anchor degenerate)` }); continue; }
+      if (!satOK) { suppressed.push({ ...rec, reason: `fairP=${pct(r.fairP)} saturated (anchor at 0/1 boundary; smile/tail unreliable)` }); continue; }
+      if (!distOK) { suppressed.push({ ...rec, reason: `K is ${r.sigmaDist.toFixed(1)}σ from forward > ${MAX_SIGMA_DIST}σ (unreliable lognormal tail)` }); continue; }
       if (!sideAllowed(r, dir)) { suppressed.push({ ...rec, reason: `${r.type} ${dir} suppressed (terminal-vs-touch bias)` }); continue; }
       signals.push(rec);
     }
@@ -402,8 +423,28 @@ function report(rows, t0) {
     for (let b = -10; b <= 10; b += 2) { const n = buckets[b] || 0; if (n) console.log(`    ${(b >= 0 ? '+' : '') + b}c: ${'#'.repeat(n)} (${n})`); }
   }
 
+  // ---------- INFORMATIVE slice (where the anchor is actually valid) ----------
+  // Saturated (fairP~0/1) and near-resolution markets dominate the raw
+  // distribution but are exactly where the anchor is uninformative. The
+  // honest calibration is on the informative zone: meaningful horizon AND
+  // a non-pinned fair probability.
+  const informative = calib.filter((r) => r.tauDays >= MIN_TAU_DAYS && r.fairP > SAT_LO && r.fairP < SAT_HI);
+  const idiffs = informative.map((r) => r.execMid - r.fairP);
+  const nSat = calib.filter((r) => r.fairP <= SAT_LO || r.fairP >= SAT_HI).length;
+  const nNear = calib.filter((r) => r.tauDays < MIN_TAU_DAYS).length;
+  console.log('\n-- INFORMATIVE slice only (tau>=' + MIN_TAU_DAYS + 'd AND fairP in (' + SAT_LO + ',' + SAT_HI + ')) --');
+  console.log(`   excluded: ${nSat} saturated-anchor + ${nNear} near-resolution (anchor uninformative there)`);
+  if (informative.length) {
+    console.log(`   N=${informative.length}  mean=${cents(mean(idiffs))}  median=${cents(median(idiffs))}  stdev=${cents(stdev(idiffs))}  range=[${cents(Math.min(...idiffs))}, ${cents(Math.max(...idiffs))}]`);
+    const byTi = {};
+    for (const r of informative) (byTi[r.type] = byTi[r.type] || []).push(r.execMid - r.fairP);
+    for (const [t, a] of Object.entries(byTi)) console.log(`     ${t.padEnd(10)} N=${String(a.length).padStart(2)}  signed=${cents(mean(a))}  stdev=${cents(stdev(a))}`);
+  } else {
+    console.log('   (none — every anchorable market right now is either near-resolution or pinned to 0/1)');
+  }
+
   // ---------- slice by type & horizon ----------
-  console.log('\n-- mean |edge| & mean signed (execMid−fairP) by market TYPE --');
+  console.log('\n-- mean |edge| & mean signed (execMid−fairP) by market TYPE (all anchored) --');
   const byType = {};
   for (const r of calib) { (byType[r.type] = byType[r.type] || []).push(r); }
   for (const [t, arr] of Object.entries(byType)) {
