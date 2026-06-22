@@ -22,7 +22,7 @@ Status legend: 🔎 testing · ✅ confirmed tradeable · ⚠️ real-but-margin
 ### Fee-aware pivot (wave 2)
 The gross edges above are real; they're killed by the 3–7% taker fee. But **geopolitics markets are fee-free** (`feesEnabled=false`) and liquid ($200k–5M/24h). The structural edges (temporal logical arb on "by-date" chains; overround on multi-candidate fields) would be **net-tradeable there**. Testing this directly:
 | 7 | Logical/overround arb on FEE-FREE markets | live book scan, fee=0 | 🔎 | — | does the gross edge survive where there's no fee? |
-| 8 | Fade / relative-value on FEE-FREE liquid geopolitics | live + fwd log | 🔎 | — | — |
+| 8 | Fade / relative-value on FEE-FREE liquid geopolitics | live + fwd log | ❌ | mid-band legs priced fairly-to-NEGATIVE by live book (Netanyahu −21¢, Hormuz −26¢); only near-calibrated longshot noise is "+" | field-level NO-rate ≠ per-leg edge; bots arb legs tight |
 | 6 | Fade-longshot on liquid markets | live screen + fwd log + liquid-subset OOS | ❌ | liquid half +0.003/sh, CI∋0; OOS [−0.10,+0.10]; negative at stricter liquidity | edge lives only in unfillable illiquid markets |
 
 Updated as agents report. The honest bar is high on purpose: a clean backtest
