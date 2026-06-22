@@ -17,7 +17,12 @@ Status legend: 🔎 testing · ✅ confirmed tradeable · ⚠️ real-but-margin
 | 2 | Multi-outcome basket / overround | live book scan | ❌ | 247 mutex events; 0 net-positive — all-NO basket costs >(K−1) even BEFORE fees | bots arb tighter than payout; +taker fees |
 | 3 | Cross-venue Polymarket↔Kalshi | match + live quotes + Kalshi fees | ❌ | 58 matches, max gap 1.5¢, 0 net-positive after ~2¢ Kalshi fee + spreads | venues tightly arbed; need >3–4¢ gap |
 | 4 | Crypto fair-value vs Deribit/Coinbase | BS fair-prob vs live book | ❌ | threshold mkts match Deribit to ±0.2¢; 0 executable; gaps = model error | PM crypto efficient where model valid |
-| 5 | Spread-capture (passive MM) | live book sampling | 🔎 | — | adverse selection / inventory |
+| 5 | Spread-capture (passive MM) | live 14-min book sampling | ❌ | net −2.42¢/round-trip (gross +0.20¢ − adverse 2.63¢); rebate doesn't cover it | wide spread=no flow; flow=adverse selection |
+
+### Fee-aware pivot (wave 2)
+The gross edges above are real; they're killed by the 3–7% taker fee. But **geopolitics markets are fee-free** (`feesEnabled=false`) and liquid ($200k–5M/24h). The structural edges (temporal logical arb on "by-date" chains; overround on multi-candidate fields) would be **net-tradeable there**. Testing this directly:
+| 7 | Logical/overround arb on FEE-FREE markets | live book scan, fee=0 | 🔎 | — | does the gross edge survive where there's no fee? |
+| 8 | Fade / relative-value on FEE-FREE liquid geopolitics | live + fwd log | 🔎 | — | — |
 | 6 | Fade-longshot on liquid markets | live screen + fwd log + liquid-subset OOS | ❌ | liquid half +0.003/sh, CI∋0; OOS [−0.10,+0.10]; negative at stricter liquidity | edge lives only in unfillable illiquid markets |
 
 Updated as agents report. The honest bar is high on purpose: a clean backtest
