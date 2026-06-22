@@ -64,3 +64,12 @@ net of the entry spread, ~$200k real capacity (mostly one market: Taiwan-2026).
 Low ceiling — beats idle USDC, not alpha. Tools: `lib/yield.js`.
 Risk: minimal (delta-neutral); rate is discretionary.
 
+### ✅ Solution 4 — Incentive stacking (combine on the same market)
+~6 markets are **fee-free AND pay maker rewards**; 2 are also **near-certain**
+(Iran-enrichment NO ~96¢, Hormuz NO ~93.5¢). On those you stack on one pot of
+capital: quote within the reward band to earn **maker rewards** *and* hold the
+near-certain side for **convergence carry** — two income streams, one position,
+zero fee. Highest risk-adjusted yield of the menu, but thin (≤6 markets, capacity
+limited). Run `scan-rewards.js` ∩ `scan-yield.js`. Risk: the rare upset on the
+carried leg; few markets qualify at once.
+
