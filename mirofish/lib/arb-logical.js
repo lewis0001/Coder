@@ -152,8 +152,10 @@ function classifyThreshold(q) {
   if (/\(high\)/.test(s)) return { dir: 1, thr };
   if (/\(low\)/.test(s)) return { dir: -1, thr };
 
-  // Open-ended UPWARD half-line.
-  if (/\b(above|over|greater than|higher than|more than|at least|or higher|or more|or above|\d+\s*\+)\b/.test(s)) {
+  // Open-ended UPWARD half-line. (Two alternatives: worded comparators, OR the
+  // "N+" player-prop form "3+ goals" — note no trailing \b after "+".)
+  if (/\b(above|over|greater than|higher than|more than|at least|or higher|or more|or above)\b/.test(s)
+      || /\d+\s*\+/.test(s)) {
     return { dir: 1, thr };
   }
   // Open-ended DOWNWARD half-line.
