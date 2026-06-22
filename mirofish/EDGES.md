@@ -12,7 +12,7 @@ Status legend: 🔎 testing · ✅ confirmed tradeable · ⚠️ real-but-margin
 | # | Edge hypothesis | Method | Status | Net edge (after real cost) | Capacity / caveat |
 |---|------------------|--------|--------|-----------------------------|-------------------|
 | 1 | Logical arb (nested thresholds / temporal) | live book-cross scan | 🔎 | — | ladders dead-efficient (hist); temporal illiquid |
-| 2 | Multi-outcome basket / overround | live book scan | 🔎 | — | liquid negRisk arbed to ~1¢ |
+| 2 | Multi-outcome basket / overround | live book scan | ❌ | 247 mutex events; 0 net-positive — all-NO basket costs >(K−1) even BEFORE fees | bots arb tighter than payout; +taker fees |
 | 3 | Cross-venue Polymarket↔Kalshi | match + live quotes + Kalshi fees | ❌ | 58 matches, max gap 1.5¢, 0 net-positive after ~2¢ Kalshi fee + spreads | venues tightly arbed; need >3–4¢ gap |
 | 4 | Crypto fair-value vs Deribit/Coinbase | BS fair-prob vs live book | ❌ | threshold mkts match Deribit to ±0.2¢; 0 executable; gaps = model error | PM crypto efficient where model valid |
 | 5 | Spread-capture (passive MM) | live book sampling | 🔎 | — | adverse selection / inventory |
