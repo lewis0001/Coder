@@ -1,5 +1,6 @@
 data/state.json
 data/*.tmp
 data/history/
+data/resolved-crypto-markets.json
 node_modules/
 *.log
