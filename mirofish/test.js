@@ -38,10 +38,13 @@ ok('engine: buy/sell PnL + cash accounting', () => {
   const spent = 10000 - e.state.cash;
   assert(spent > 0 && spent <= 750, 'budget within cap: ' + spent);
   const shares = pos.shares;
+  const feeRate = require('./lib/engine').RISK.feeRate;
+  assert(feeRate > 0 && Math.abs(pos.cost - (shares * 0.10)) > 1e-9, 'entry should include a taker fee in cost');
   const pnl = e.exit('mx', 0.16, 'take-profit');   // sell at 16¢
-  const expected = shares * 0.16 - spent;
+  const exitFee = feeRate * Math.min(0.16, 0.84) * shares;
+  const expected = shares * 0.16 - exitFee - spent; // spent already includes the entry fee
   assert(Math.abs(pnl - expected) < 1e-6, `pnl ${pnl} vs ${expected}`);
-  assert(pnl > 0 && e.state.wins === 1, 'should record a win');
+  assert(pnl > 0 && e.state.wins === 1, 'should record a win (net of fees)');
   assert(Math.abs(e.state.cash - (10000 + pnl)) < 1e-6, 'cash should reflect realized pnl');
 });
 

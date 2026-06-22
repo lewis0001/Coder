@@ -25,7 +25,10 @@ const RISK = {
   maxTradeUsd: 750,
   maxOpenPositions: 12,
   dailyLossLimit: 0.20,   // halt if down 20% on the day
-  feeBps: 0,              // Polymarket has no maker/taker fee on fills
+  // Polymarket DOES charge taker fees (verified live): ~feeRate*min(p,1-p)/share.
+  // sports 3% / politics 4% / econ-culture 5% / crypto 7%; taker-only, 25% maker
+  // rebate. The bot trades crypto Up/Down, so default to the crypto rate.
+  feeRate: Number(process.env.FEE_RATE || 0.07),
 };
 
 function nowISO() { return new Date().toISOString(); }
@@ -113,16 +116,20 @@ class Engine {
     const budget = Math.min(RISK.maxTradeUsd, this.state.cash * RISK.perTradeFrac * (0.6 + 0.8 * confidence));
     if (budget < 1 || budget > this.state.cash) return null;
     const shares = budget / fillAsk;        // each share pays $1 if YES resolves true
-    this.state.cash -= budget;
+    // Polymarket charges a TAKER fee ~ feeRate * min(price,1-price) per share
+    // (verified live: sports 3% / politics 4% / econ-culture 5% / crypto 7%).
+    // The live bot trades crypto Up/Down markets, so this is the dominant cost.
+    const entryFee = RISK.feeRate * Math.min(fillAsk, 1 - fillAsk) * shares;
+    this.state.cash -= (budget + entryFee);
     const pos = {
       marketId: market.id, question: market.question, asset: market.asset,
       token: market.tokenYes, side: 'YES', shares, avgPrice: fillAsk,
-      cost: budget, openedAt: nowISO(), endDate: market.endDate,
+      cost: budget + entryFee, openedAt: nowISO(), endDate: market.endDate,
     };
     this.state.positions[market.id] = pos;
     this.state.tradeCount++;
     this.state.trades.unshift({ t: nowISO(), kind: 'BUY', asset: market.asset, q: market.question,
-      price: fillAsk, shares, usd: budget });
+      price: fillAsk, shares, usd: budget, fee: entryFee });
     this.trim();
     return pos;
   }
@@ -132,13 +139,14 @@ class Engine {
     const p = this.state.positions[marketId];
     if (!p) return null;
     const price = fillBid > 0 ? fillBid : 0; // worst case: longshot expired worthless
-    const proceeds = p.shares * price;
+    const exitFee = RISK.feeRate * Math.min(price, 1 - price) * p.shares; // taker fee on the sell too
+    const proceeds = p.shares * price - exitFee;
     const pnl = proceeds - p.cost;
     this.state.cash += proceeds;
     this.state.realized += pnl;
     if (pnl > 0) this.state.wins++; else if (pnl < 0) this.state.losses++; // exact break-even is neither
     this.state.trades.unshift({ t: nowISO(), kind: 'SELL', asset: p.asset, q: p.question,
-      price, shares: p.shares, usd: proceeds, pnl, reason });
+      price, shares: p.shares, usd: proceeds, pnl, fee: exitFee, reason });
     delete this.state.positions[marketId];
     this.trim();
     return pnl;
