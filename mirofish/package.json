@@ -13,6 +13,7 @@
     "sweep": "node scripts/sweep.js",
     "fetch-data": "node scripts/fetch-research-data.js",
     "forecast": "node scripts/forecast.js",
+    "hf": "node scripts/scan-hf.js",
     "rewards": "node scripts/scan-rewards.js",
     "yield": "node scripts/scan-yield.js",
     "xvenue": "node scripts/scan-xvenue-feefree.js",
