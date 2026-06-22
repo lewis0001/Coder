@@ -16,7 +16,7 @@ Status legend: 🔎 testing · ✅ confirmed tradeable · ⚠️ real-but-margin
 | 3 | Cross-venue Polymarket↔Kalshi | match + live quotes + Kalshi fees | 🔎 | — | matching confidence + fees |
 | 4 | Crypto fair-value vs Deribit/Coinbase | BS fair-prob vs live book | 🔎 | — | model/anchor risk |
 | 5 | Spread-capture (passive MM) | live book sampling | 🔎 | — | adverse selection / inventory |
-| 6 | Fade-longshot on liquid markets | live screen + fwd log + liquid-subset OOS | 🔎 | — | liquidity may kill it |
+| 6 | Fade-longshot on liquid markets | live screen + fwd log + liquid-subset OOS | ❌ | liquid half +0.003/sh, CI∋0; OOS [−0.10,+0.10]; negative at stricter liquidity | edge lives only in unfillable illiquid markets |
 
 Updated as agents report. The honest bar is high on purpose: a clean backtest
 you can't fill is worse than no edge.
