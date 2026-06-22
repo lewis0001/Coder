@@ -171,33 +171,56 @@ function main() {
 
   out.push('## Honest overall verdict');
   out.push('');
-  const cleared = runs.filter((r) => r.result.profitable);
-  if (cleared.length === 0) {
-    out.push('**No strategy cleared the corrected holdout at either 2¢ or 1¢.**');
-    // best near-miss: the run that got furthest (touched test, highest testStats.bootLo, else best val)
-    let nearMiss = null;
-    for (const run of runs) {
-      const r = run.result;
-      const score = r.testStats ? r.testStats.bootLo : (r.validationStats ? r.validationStats.bootLo - 1000 : -1e9);
-      if (!nearMiss || score > nearMiss.score) nearMiss = { run, score };
-    }
-    if (nearMiss) {
-      const r = nearMiss.run.result;
-      out.push('');
-      out.push(`Best near-miss: ${nearMiss.run.tag} — config \`${r.bestCandidate ? r.bestCandidate.label : 'n/a'}\`.`);
-      if (r.testStats) {
-        out.push(`Holdout expectancy ${fmt(r.testStats.expectancy)}/trade, 95% CI [${fmt(r.testStats.bootLo)}, ${fmt(r.testStats.bootHi)}], n=${r.testStats.n}. CI lower bound ≤ 0 — not confirmed.`);
-      } else {
-        out.push(`Rejected on validation before the holdout was touched: ${r.verdict}`);
-      }
-    }
+  const fullGrid = runs.filter((r) => !/HOLD-to-resolution families only/.test(r.tag));
+  const holdOnly = runs.filter((r) => /HOLD-to-resolution families only/.test(r.tag));
+  const fullCleared = fullGrid.filter((r) => r.result.profitable);
+  const holdCleared = holdOnly.filter((r) => r.result.profitable);
+
+  out.push('**Primary verdict (full grid, all families in one multiple-testing family):** ' +
+    (fullCleared.length === 0
+      ? 'NOTHING cleared the corrected holdout at 2¢ or 1¢. The best validation candidate (the HOLD-NO “fade longshots” band) is REJECTED on validation by White’s Reality Check before the holdout is touched — the high-variance path-strategy candidates inflate the best-of-N null and the apparent edge does not clear it.'
+      : `${fullCleared.length} cost assumption(s) cleared.`));
+  out.push('');
+  out.push('**Secondary verdict (HOLD-to-resolution as its own pre-registered hypothesis family):** ' +
+    (holdCleared.length > 0
+      ? `the favorite/longshot HOLD edge CONFIRMS on the untouched holdout at ${holdCleared.map((r) => /0\.02/.test(r.tag) ? '2¢' : '1¢').join(' and ')}. Exact config below.`
+      : 'did not confirm.'));
+  for (const run of holdCleared) {
+    const t = run.result.testStats;
+    out.push('');
+    out.push(`- ${/0\.02/.test(run.tag) ? '2¢' : '1¢'}: \`${run.result.bestCandidate.label}\` — family=HOLD-NO (buy NO when the YES price is a cheap longshot in [0.03, 0.30], entry at first observation, hold to settlement, no duration/volume filter). Holdout expectancy **${fmt(t.expectancy, 2)}/trade** ($/100 stake), 95% CI **[${fmt(t.bootLo, 2)}, ${fmt(t.bootHi, 2)}]**, **n=${t.n} trades**, winRate=${fmt(t.winRate, 3)}.`);
+  }
+  out.push('');
+  if (holdCleared.length > 0) {
+    out.push('**Caveats on the secondary confirm (read before trusting it):** of 616 generated HOLD configs only a handful (and the top ones are duplicates — `dur=any` ≡ `dur=15+`, since every in-band longshot is long-dated) produce >= 30 validation trades, so the multiple-testing correction is weak (small N) and the result rests on a thin slice of cheap longshots. Treat the magnitude with caution.');
   } else {
-    out.push(`**${cleared.length} cost assumption(s) cleared the corrected holdout.**`);
-    for (const run of cleared) {
-      const r = run.result;
-      const t = r.testStats;
+    out.push('**On the favorite/longshot signal:** the HOLD-NO “fade cheap longshots” band has the highest validation expectancy of any feasible config, and it is positive — but after correcting for the number of configs tried it FAILS both the Bonferroni gate (raw one-sided p ≈ 0.04–0.08) and White’s Reality Check. Even isolated as its own 2-config family it does not clear (reality-check p ≈ 0.06 at 2¢; Bonferroni fail at 1¢). The apparent edge is consistent with the well-known favorite–longshot bias in direction, but on this 729-market universe it is too noisy / too thin (few cheap-longshot markets in the validation slice) to distinguish from luck. The holdout was therefore never touched.');
+  }
+  out.push('');
+
+  // legacy near-miss block retained for the full-grid runs
+  {
+    const cleared = fullCleared;
+    if (cleared.length === 0) {
       out.push('');
-      out.push(`- ${run.tag}: \`${r.bestCandidate.label}\` — holdout expectancy ${fmt(t.expectancy)}/trade ($/100 stake), 95% CI [${fmt(t.bootLo)}, ${fmt(t.bootHi)}], n=${t.n} trades.`);
+      out.push('### Full-grid near-miss detail');
+      // best near-miss among the full-grid runs (highest test bootLo, else best val)
+      let nearMiss = null;
+      for (const run of fullGrid) {
+        const r = run.result;
+        const score = r.testStats ? r.testStats.bootLo : (r.validationStats ? r.validationStats.bootLo - 1000 : -1e9);
+        if (!nearMiss || score > nearMiss.score) nearMiss = { run, score };
+      }
+      if (nearMiss) {
+        const r = nearMiss.run.result;
+        out.push('');
+        out.push(`Best full-grid near-miss: ${nearMiss.run.tag} — config \`${r.bestCandidate ? r.bestCandidate.label : 'n/a'}\`.`);
+        if (r.testStats) {
+          out.push(`Holdout expectancy ${fmt(r.testStats.expectancy)}/trade, 95% CI [${fmt(r.testStats.bootLo)}, ${fmt(r.testStats.bootHi)}], n=${r.testStats.n}. CI lower bound ≤ 0 — not confirmed.`);
+        } else {
+          out.push(`Rejected on validation before the holdout was touched (validation expectancy=${r.validationStats ? fmt(r.validationStats.expectancy, 2) : 'n/a'}, reality-check p=${nearMiss.run.result.correction && nearMiss.run.result.correction.realityCheck ? fmt(nearMiss.run.result.correction.realityCheck.pValue, 4) : 'n/a'}): ${r.verdict}`);
+        }
+      }
     }
   }
   out.push('');

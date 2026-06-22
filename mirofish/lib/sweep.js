@@ -135,7 +135,11 @@ function entryObs(market, cfg) {
    entry). Mean-reversion & momentum scan the path for one entry.
    ============================================================ */
 function backtestFn(market, cfg) {
-  const m = market.path ? market : adapt(market); // accept raw research rows too
+  // Always normalize the outcome field: research rows carry `outcomeYesWon`,
+  // adapted rows carry `yesWon`. We MUST end up with a boolean `yesWon` or the
+  // NO side (won = !yesWon) silently treats `!undefined` as a guaranteed win,
+  // which fabricates a fake favorite-longshot edge.
+  const m = ('yesWon' in market) ? market : adapt(market);
   const empty = { log: [], netPnl: 0, trades: 0 };
   const path = m.path;
   if (!Array.isArray(path) || path.length < 2) return empty;

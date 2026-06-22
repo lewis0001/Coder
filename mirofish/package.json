@@ -6,7 +6,12 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
+    "test": "node test.js",
     "backtest": "node scripts/backtest.js",
+    "validate": "node scripts/validate-selfcheck.js",
+    "calibration": "node scripts/calibration-study.js",
+    "sweep": "node scripts/sweep.js",
+    "fetch-data": "node scripts/fetch-research-data.js",
     "reset": "rm -f data/state.json"
   },
   "engines": { "node": ">=18" }
