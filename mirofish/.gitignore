@@ -1,4 +1,5 @@
 data/state.json
 data/*.tmp
+data/history/
 node_modules/
 *.log

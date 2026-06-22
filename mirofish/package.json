@@ -6,6 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
+    "backtest": "node scripts/backtest.js",
     "reset": "rm -f data/state.json"
   },
   "engines": { "node": ">=18" }
