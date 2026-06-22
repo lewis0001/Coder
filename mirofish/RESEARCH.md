@@ -35,6 +35,30 @@ Detailed numbers: `data/backtest-report.md`, `data/backtest-maker-report.md`,
 `data/research/sweep-report.md` (the `data/research/` reports are local, in the
 gitignored cache dir; regenerate with the scripts below).
 
+## Cross-market structural search (overround / Dutch-book + logical chains)
+
+We then hunted the "chained" relational edges most people never check:
+mutually-exclusive event baskets (YES legs should sum to ~1; they don't), and
+logically nested markets (price ladders, temporal deadlines) whose prices must
+be monotonic. The overround is **descriptively real and large** — across 273
+resolved mutually-exclusive events the median early overround is **+0.475**,
+compressing toward fair (+0.015) by resolution. Fading the overpriced mid-band
+legs (buy NO, hold to settlement) initially *appeared* to clear the locked
+holdout (+0.29/trade, 93% win, CI [0.21, 0.36] at 2¢).
+
+**It was a false positive, and independent verification caught it.** Re-deriving
+the winning config's holdout trades showed they were almost all illiquid 3-leg
+cricket prop markets whose price series **ended ~6 days before the entry
+timestamp** — i.e. stale quotes you could never actually transact at — and were
+**clustered on a single date** (correlated fixtures the bootstrap wrongly treated
+as independent). Adding one realistic tradeability filter (entry quote must be
+fresh *and* the market still trading at entry) collapses the validation and
+holdout samples to **zero trades**. So the overround is real but lives exactly
+where it can't be filled; in liquid markets active arbitrageurs (and Polymarket's
+negRisk converter) keep the legs summing to ~1. `scripts/verify-events-edge.js`
+reproduces this. Lesson: a statistically-clean backtest is still only as honest
+as the *fillability* of the prices it assumes — which mid-price paths can't show.
+
 ## The one real signal — and why it still isn't tradeable (yet)
 
 The calibration study found a genuine, mechanistic **gross** mispricing: YES
