@@ -47,3 +47,20 @@ volatility sampler flags as stable; quote at the wide max-spread; size for the
 capacity-diluted yield. Tools: `lib/rewards.js`, `scripts/scan-rewards.js`.
 Risk: adverse selection if the mid moves (volatile markets lose); inventory.
 
+### ✅ Solution 2 — Convergence carry on fee-free near-certainties
+On **fee-free** markets the gap to $1 is pure profit on convergence. Buying the
+near-certain side (NO on a ~99¢ "will X happen" that won't) and holding to
+resolution yields **~10–65%/yr** per leg, **~$3.3M** aggregate capacity in the
+genuinely near-certain tier (≤3% implied upset). You are **selling tail risk**,
+and the big legs are **correlated** (Iran/Israel war-NO) — so size per
+*uncorrelated subject*, not per leg. Tools: `lib/yield.js`, `scripts/scan-yield.js`.
+Risk: a single upset wipes many wins; correlation across legs.
+
+### ✅ Solution 3 — Holding-rewards farming (delta-neutral)
+Polymarket pays a flat **~3.25%/yr** on the mid-value of positions in
+`holdingRewardsEnabled` markets (both YES and NO holders earn). Buy 1 YES + 1
+NO on a **fee-free** holding-reward market = **directionally riskless ~3%/yr**
+net of the entry spread, ~$200k real capacity (mostly one market: Taiwan-2026).
+Low ceiling — beats idle USDC, not alpha. Tools: `lib/yield.js`.
+Risk: minimal (delta-neutral); rate is discretionary.
+
