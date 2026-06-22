@@ -1,0 +1,12 @@
+{
+  "name": "mirofish-trader",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CLAUDE FABLE 5 — MIROFISH: a real Polymarket paper-trading bot + live dashboard (zero dependencies)",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "reset": "rm -f data/state.json"
+  },
+  "engines": { "node": ">=18" }
+}

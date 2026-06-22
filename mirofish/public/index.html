@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CLAUDE FABLE 5 · MIROFISH — live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="frame">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-left">
+      <div class="logo"></div>
+      <div class="hdr-titles">
+        <div class="hdr-path">PATTERN NET <span>&rarr;</span> MEDIAN PATH <span>&rarr;</span> ONE EXECUTION</div>
+        <div class="hdr-brand">CLAUDE FABLE 5 <span class="dash">—</span> <span class="brand-accent">MIROFISH</span></div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="pill" id="modePill"><span class="dot pulse" id="modeDot"></span> <span id="modeTxt">CONNECTING…</span></div>
+      <button class="pill btn" id="btnRun">PAUSE</button>
+      <button class="pill btn" id="btnFlat">FLATTEN</button>
+      <div class="pill pill-round">ROUND <b id="round">#0</b></div>
+      <div class="clock" id="clock">--:--:-- UTC</div>
+    </div>
+  </header>
+
+  <!-- METRICS -->
+  <section class="metrics">
+    <div class="pnl-block">
+      <div class="row-label"><span class="dot red"></span> CLAUDE FABLE 5 · TOTAL PNL
+        <span class="tag">CRYPTO TAIL SNIPER</span>
+        <span class="tag tag-ghost" id="venueTag">POLYMARKET · PAPER</span>
+      </div>
+      <div class="pnl-main">
+        <span class="big-num" id="pnl">$0</span>
+        <span class="win-badge" id="winBadge">FLAT</span>
+      </div>
+      <div class="pnl-sub">
+        equity <b id="equity">$0</b> &nbsp;·&nbsp; cash <b id="cash">$0</b> &nbsp;·&nbsp;
+        <b id="trades">0</b> trades &nbsp;·&nbsp; <b id="wr">0%</b> WR &nbsp;·&nbsp; Sharpe <b id="sharpe">0.00</b>
+      </div>
+      <div class="pnl-sub small">
+        realized <b class="signed" id="realized">$0</b> &nbsp; unrealized <b class="signed" id="unreal">$0</b>
+        &nbsp; open <b id="openCount">0</b> &nbsp; <span id="haltFlag"></span>
+      </div>
+    </div>
+    <div class="topwins-block">
+      <div class="tw-head">★ TOP WINS · CLOSED TRADES <span class="tw-page" id="twPage">0</span></div>
+      <div id="topWins" class="tw-list"><div class="tw-empty">no closed trades yet — engine is hunting the tail…</div></div>
+    </div>
+  </section>
+
+  <!-- MARKET / SIGNAL BOARD -->
+  <section class="panel">
+    <div class="panel-head">▸ Live Signal Board — <b id="mktCount">0</b> Polymarket markets
+      <span class="head-meta">REAL CLOB QUOTES · TAIL SNIPER GATE</span>
+    </div>
+    <div class="panel-body">
+      <table class="board" id="board">
+        <thead><tr>
+          <th>ASSET</th><th class="l">MARKET</th><th>YES</th><th>BID/ASK</th><th>MOM</th><th>24H VOL</th><th>SIGNAL</th><th>CONF</th>
+        </tr></thead>
+        <tbody id="boardBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- LATTICE (real closed-trade outcomes) -->
+  <section class="panel">
+    <div class="panel-head">▸ Probability Lattice — <b id="latTrades">0</b> closed trades, one board
+      <span class="head-meta">REAL OUTCOMES · LOSS ◄ BREAKEVEN ► PROFIT</span>
+    </div>
+    <div class="panel-body lattice">
+      <div class="stats-col">
+        <div class="stat-grp-title">REALIZED CONVERGENCE</div>
+        <div class="stat"><span>CLOSED</span><b id="closedN">0</b></div>
+        <div class="stat"><span>WINS</span><b class="green" id="winsN">0</b></div>
+        <div class="stat"><span>LOSSES</span><b class="red" id="lossN">0</b></div>
+        <div class="stat"><span>WIN RATE</span><b class="green" id="wr2">0%</b></div>
+        <div class="hr"></div>
+        <div class="stat"><span>REALIZED</span><b class="signed" id="realised2">$0</b></div>
+        <div class="stat"><span>BEST</span><b class="green" id="bestTrade">$0</b></div>
+        <div class="stat-note">LAW OF LARGE NUMBERS — THE EDGE ONLY NEEDS REPETITION</div>
+      </div>
+      <div class="canvas-wrap"><canvas id="galton"></canvas></div>
+    </div>
+  </section>
+
+  <!-- RIDGE (real market price distribution) -->
+  <section class="panel">
+    <div class="panel-head">▸ Tail Probability Ridge — Strike Landscape
+      <span class="head-meta">LIVE YES-PRICE DENSITY ACROSS TRACKED MARKETS</span>
+    </div>
+    <div class="panel-body ridge">
+      <div class="stats-col">
+        <div class="stat"><span>MARKETS</span><b id="rMkts">0</b></div>
+        <div class="stat"><span>TAIL BAND</span><b>2¢–30¢</b></div>
+        <div class="stat"><span>IN BAND</span><b class="green" id="rInBand">0</b></div>
+        <div class="stat"><span>CHEAPEST</span><b id="rCheap">—</b></div>
+        <div class="hr"></div>
+        <div class="stat"><span>OPEN POS</span><b id="rOpen">0</b></div>
+        <div class="stat"><span>REALIZED</span><b class="signed" id="rReal">$0</b></div>
+        <div class="stat-note">PENNIES INTO THE TAIL = HUNDREDS</div>
+      </div>
+      <div class="canvas-wrap">
+        <div class="ridge-tag-l">YES-PRICE DENSITY · CRYPTO TARGETS</div>
+        <canvas id="ridge"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- NETWORK (real markets as nodes) -->
+  <section class="panel">
+    <div class="panel-head">▸ MIROFISH — RELATIONSHIP GRAPH
+      <span class="head-meta">NODES <b id="nNodes">0</b> · SIGNAL <b class="green" id="nSignal">0%</b></span>
+    </div>
+    <div class="panel-body network">
+      <div class="stats-col">
+        <div class="stat-grp-title">NODE CLASS</div>
+        <div class="legend"><span class="lg green"></span> Buy signal</div>
+        <div class="legend"><span class="lg red"></span> Exit / avoid</div>
+        <div class="legend"><span class="lg gray"></span> Hold</div>
+        <div class="legend"><span class="lg black"></span> Asset hub</div>
+        <div class="hr"></div>
+        <div class="stat"><span>BUY SIGNALS</span><b class="green" id="buySig">0</b></div>
+        <div class="stat"><span>HELD</span><b id="heldSig">0</b></div>
+        <div class="stat"><span>POLL</span><b id="pollMs">0ms</b></div>
+        <div class="stat"><span>PREDICTED</span><b class="green" id="predicted">—</b></div>
+      </div>
+      <div class="canvas-wrap"><canvas id="network"></canvas></div>
+      <div class="stats-col right">
+        <div class="stat-grp-title">OPEN POSITIONS</div>
+        <div id="posList" class="poslist"><div class="tw-empty">flat</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRADE LOG -->
+  <section class="panel">
+    <div class="panel-head">▸ Execution Log <span class="head-meta">PAPER FILLS @ LIVE CLOB PRICES</span></div>
+    <div class="panel-body">
+      <table class="board log" id="logTbl">
+        <thead><tr><th>TIME</th><th>SIDE</th><th>ASSET</th><th class="l">MARKET</th><th>PRICE</th><th>USD</th><th>PNL</th><th class="l">REASON</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="ftr">
+    <div><span class="dot green pulse" id="ftrDot"></span> <span id="ftrStatus">ENGINE</span> &nbsp; MODEL <b>CLAUDE-FABLE-5</b> &nbsp; VENUE <b>POLYMARKET</b> &nbsp; <b id="fills">0</b> FILLS &nbsp; <span id="ftrErr"></span></div>
+    <div class="ftr-r">STACK <b>MIROFISH-CORE</b> · gamma + CLOB</div>
+  </footer>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>
