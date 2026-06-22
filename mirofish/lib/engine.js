@@ -71,27 +71,29 @@ class Engine {
     }
   }
 
-  /* mark-to-market equity using latest mids keyed by marketId */
-  equity(midById) {
+  /* mark-to-market equity at the BID (the price we could actually sell at,
+     since we bought at the ask). Marking at mid would book ~half-a-spread of
+     phantom profit on every open position. */
+  equity(bidById) {
     let pos = 0;
     for (const p of Object.values(this.state.positions)) {
-      const mid = midById[p.marketId] ?? p.avgPrice;
-      pos += p.shares * mid;
+      const bid = bidById[p.marketId] ?? p.avgPrice;
+      pos += p.shares * bid;
     }
     return this.state.cash + pos;
   }
 
-  unrealized(midById) {
+  unrealized(bidById) {
     let u = 0;
     for (const p of Object.values(this.state.positions)) {
-      const mid = midById[p.marketId] ?? p.avgPrice;
-      u += p.shares * (mid - p.avgPrice);
+      const bid = bidById[p.marketId] ?? p.avgPrice;
+      u += p.shares * (bid - p.avgPrice);
     }
     return u;
   }
 
-  riskState(midById) {
-    const eq = this.equity(midById);
+  riskState(bidById) {
+    const eq = this.equity(bidById);
     this.resetDayIfNeeded(eq);
     const dayPnl = eq - this.state.dayStartEquity;
     if (dayPnl <= -RISK.dailyLossLimit * this.state.dayStartEquity) this.state.halted = true;
@@ -134,7 +136,7 @@ class Engine {
     const pnl = proceeds - p.cost;
     this.state.cash += proceeds;
     this.state.realized += pnl;
-    if (pnl >= 0) this.state.wins++; else this.state.losses++;
+    if (pnl > 0) this.state.wins++; else if (pnl < 0) this.state.losses++; // exact break-even is neither
     this.state.trades.unshift({ t: nowISO(), kind: 'SELL', asset: p.asset, q: p.question,
       price, shares: p.shares, usd: proceeds, pnl, reason });
     delete this.state.positions[marketId];
@@ -149,7 +151,8 @@ class Engine {
     return n ? this.state.wins / n : 0;
   }
 
-  /* rough Sharpe from closed-trade pnls (illustrative) */
+  /* t-statistic of mean per-trade PnL != 0 (NOT a Sharpe ratio).
+     Grows with sqrt(n); shown only as a rough significance gauge. */
   sharpe() {
     const pnls = this.state.trades.filter(t => typeof t.pnl === 'number').map(t => t.pnl);
     if (pnls.length < 3) return 0;

@@ -14,6 +14,34 @@ Flipping to live trading is a deliberate, separate step (see below).
 > and will lose money. The code is the machinery to trade; the decision to risk
 > real funds — and the consequences — are yours.
 
+## Is it profitable? (measured, not guessed)
+
+No — and we proved it rigorously rather than hand-waving. A look-ahead-free,
+spread-crossing backtester (`npm run backtest`) was run on **60 real resolved
+Polymarket crypto markets (44k price points)**, and three structurally-motivated
+strategy families were tested out-of-sample (train/test split):
+
+| Approach | Result (net of costs) |
+|----------|-----------------------|
+| Momentum / "tail sniper" (current) | **−$4.06/trade** @1¢ spread; gross also ≈0 → no edge |
+| Market-making (capture the spread) | **Loses** train & test; killed by inventory settling into the losing side |
+| Valuation / favorite–longshot / mean-reversion | No edge survives realistic fills out-of-sample |
+
+The full numbers and methodology are in `data/backtest-report.md`,
+`data/backtest-maker-report.md`, and `data/backtest-value-report.md`.
+
+**Why:** short-horizon crypto "Up or Down" markets are near-efficient, and every
+round trip pays the full bid/ask spread, which dwarfs any signal. The honest
+conclusion is that the best action on these markets is usually **not to trade**.
+
+### What changed after measuring
+The engine was made *truthful* rather than *optimistic* (see git history): open
+positions are now marked at the **bid** (the price you could actually sell at,
+not the mid), and the strategy now has a **signal-must-exceed-cost gate** — it
+only enters when the expected move clears the round-trip spread, so it stops
+churning on noise. These don't make it profitable; they make the paper results
+match what real execution would do.
+
 ## Run it
 
 Requires **Node 18+**. No dependencies, no build step.

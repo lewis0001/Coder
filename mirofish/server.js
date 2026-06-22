@@ -48,20 +48,20 @@ async function cycle() {
       try { return [m.id, await pm.fetchQuote(m.tokenYes)]; }
       catch { return [m.id, null]; }
     }));
-    const midById = {};
+    const bidById = {};
     for (const [id, q] of quotes) {
       const m = markets.find((x) => x.id === id);
       if (!m) continue;
       if (q && q.mid > 0) { m.bestBid = q.bid ?? m.bestBid; m.bestAsk = q.ask ?? m.bestAsk; m.mid = q.mid; }
       lastQuotes[id] = { bid: m.bestBid, ask: m.bestAsk, mid: m.mid };
-      midById[id] = m.mid;
+      bidById[id] = m.bestBid;   // mark positions at the realisable (bid) price
       const h = histories.get(id) || [];
       h.push(m.mid); if (h.length > 40) h.shift();
       histories.set(id, h);
     }
 
-    // 3) risk gate
-    const risk = engine.riskState(midById);
+    // 3) risk gate — daily-loss kill-switch; halt blocks new entries
+    engine.riskState(bidById);
 
     // 4) decide + execute (signal-based auto)
     signals = {};
@@ -91,14 +91,14 @@ async function cycle() {
 
 /* ---------- snapshot for the dashboard ---------- */
 function snapshot() {
-  const midById = {};
-  for (const m of markets) midById[m.id] = m.mid;
-  const eq = engine.equity(midById);
-  const unreal = engine.unrealized(midById);
+  const bidById = {};
+  for (const m of markets) bidById[m.id] = m.bestBid;  // realisable price
+  const eq = engine.equity(bidById);
+  const unreal = engine.unrealized(bidById);
   const s = engine.state;
   const positions = Object.values(s.positions).map((p) => {
-    const mid = midById[p.marketId] ?? p.avgPrice;
-    return { ...p, mid, upnl: p.shares * (mid - p.avgPrice), retPct: (mid - p.avgPrice) / p.avgPrice };
+    const bid = bidById[p.marketId] ?? p.avgPrice;
+    return { ...p, mid: bid, upnl: p.shares * (bid - p.avgPrice), retPct: (bid - p.avgPrice) / p.avgPrice };
   }).sort((a, b) => b.upnl - a.upnl);
 
   // closed trades (with pnl) for "top wins" + lattice

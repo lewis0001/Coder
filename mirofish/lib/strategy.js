@@ -22,6 +22,8 @@ const DEFAULTS = {
   momentumMin: 0.0015, // mid must have risen >= 0.15¢ over the window
   minVolume24h: 0,     // intraday markets start at 0 vol; the live book is the gate
   maxSpread: 0.05,     // skip wide books (paper fills would be unrealistic)
+  requireEdgeOverCost: true, // only trade when expected move > round-trip spread
+  edgeSafety: 1.0,     // multiple of spread the expected move must clear
   // EXITS
   takeProfit: 0.40,    // +40% on the contract price
   stopLoss: 0.30,      // -30%
@@ -68,6 +70,18 @@ function decide(market, history, position, cfg = DEFAULTS) {
   if (spread > cfg.maxSpread) return { action: 'hold', reason: 'spread too wide', confidence: 0 };
   if (hrs < cfg.resolveCutoffH) return { action: 'hold', reason: 'too close to resolution', confidence: 0 };
   if (mom < cfg.momentumMin) return { action: 'hold', reason: 'no upward momentum', confidence: 0.2 };
+
+  // SIGNAL-MUST-EXCEED-COST GATE. A round trip pays the full spread (you buy at
+  // the ask, sell at the bid). Only enter if the move we expect over the hold
+  // plausibly exceeds that cost — otherwise we're trading noise into a guaranteed
+  // spread loss, which backtesting proved is a net loser. This makes the bot
+  // trade rarely on near-efficient markets, which is the honest behaviour.
+  if (cfg.requireEdgeOverCost !== false) {
+    const expectedMove = mom * cfg.momentumLookback;   // projected drift over the window
+    if (expectedMove < spread * (cfg.edgeSafety || 1)) {
+      return { action: 'hold', reason: `edge<cost (${(expectedMove * 100).toFixed(2)}¢ < ${(spread * 100).toFixed(2)}¢ spread)`, confidence: 0.1 };
+    }
+  }
 
   // confidence scales with momentum strength and cheapness of the tail
   const cheapEdge = Math.max(0, 1 - mid / cfg.entryMax);  // cheaper = better payoff
