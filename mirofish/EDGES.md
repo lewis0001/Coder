@@ -35,7 +35,20 @@ you can't fill is worse than no edge.
 Every *directional / arbitrage* hypothesis above is ❌ net of real cost — the
 books are efficient where liquid and fee-protected (3–7% taker) where they're
 not. **Profit on Polymarket does not come from predicting better; it comes from
-harvesting the platform's liquidity incentives.** Confirmed, tradeable:
+harvesting the platform's liquidity incentives.** Five confirmed, tradeable:
+
+| # | Solution | Return (net) | Capacity | Risk | Type |
+|---|----------|--------------|----------|------|------|
+| 1 | **LP maker-rewards farming** | ~1–2%/day on stable mkts | ~$5–10k/mkt | adverse selection if mid moves | yield |
+| 2 | **Convergence carry** (fee-free near-certain) | ~10–65%/yr per leg | ~$3.3M (tier-1) | correlated tail upset | short-vol carry |
+| 3 | **Holding-rewards farming** (delta-neutral) | ~3%/yr | ~$200k | minimal | riskless yield |
+| 4 | **Incentive stacking** (rewards + carry, 1 position) | best risk-adj. | thin (≤6 mkts) | tail on carried leg | combo |
+| 5 | **Fee-free cross-venue arb** (PM↔Kalshi) | ~2% / position | ~$100s+ | fill timing | arbitrage |
+
+All five survive the executable-cost standard on live data. None is high-capacity
+alpha — they are modest, capacity-limited **yield/arbitrage** plays. That is the
+honest nature of profit on a near-efficient, fee-protected venue: you get paid
+for *providing liquidity* and *carrying risk others won't*, not for forecasting.
 
 ### ✅ Solution 1 — Liquidity-rewards farming (maker rewards)
 Polymarket pays ~**$60k/day** across **302** markets to makers who rest orders
@@ -63,6 +76,17 @@ NO on a **fee-free** holding-reward market = **directionally riskless ~3%/yr**
 net of the entry spread, ~$200k real capacity (mostly one market: Taiwan-2026).
 Low ceiling — beats idle USDC, not alpha. Tools: `lib/yield.js`.
 Risk: minimal (delta-neutral); rate is discretionary.
+
+### ✅ Solution 5 — Fee-free cross-venue arbitrage (Polymarket ↔ Kalshi)
+When a Polymarket **fee-free** leg matches a Kalshi market with *identical*
+resolution criteria and an exactly date-aligned bin, the cross-venue gap can be
+locked for net profit. Live now: **Hormuz-normal-by-Dec-31** — PM NO @13.7¢
+(fee-free) + Kalshi YES @83.3¢ = $0.98/pair → **~2% net** over ~6 months,
+~$100+ capacity (room for more). Near-riskless (both legs settle to the same
+event). Narrow: only geopolitics with clean cross-venue twins (currently the
+Hormuz/IMF-PortWatch family); requires near-simultaneous fills on both venues.
+Tool: `scripts/scan-xvenue-feefree.js`. Risk: leg-fill timing; ties up capital
+to resolution; rare resolution-criteria slivers.
 
 ### ✅ Solution 4 — Incentive stacking (combine on the same market)
 ~6 markets are **fee-free AND pay maker rewards**; 2 are also **near-certain**
